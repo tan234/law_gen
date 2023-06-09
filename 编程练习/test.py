@@ -19,7 +19,10 @@ import torch
 # 链表
 # 树相关
 
-
+a=[{'rouge-1': {'r': 0.27631578947368424, 'p': 0.20588235294117646, 'f': 0.23595505128645383}, 'rouge-2': {'r': 0.09523809523809523, 'p': 0.062111801242236024, 'f': 0.07518796514641898}, 'rouge-l': {'r': 0.22429906542056074, 'p': 0.11594202898550725, 'f': 0.15286623754533665}}]
+print(a[0])
+for k in a[0]:
+    print(a[0][k]['f'])
 def numDifferentIntegers(nums) :
     # 最大连续乘积
     res=nums[0]
@@ -34,7 +37,7 @@ def numDifferentIntegers(nums) :
         res=max(max_dp[i],res)
     return res
 
-print(numDifferentIntegers([1,-1,0,2,-2,-1,0]))
+# print(numDifferentIntegers([1,-1,0,2,-2,-1,0]))
 
 
 

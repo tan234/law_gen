@@ -14,9 +14,18 @@ class DealData(object):
         # print(json_data)
     def data_explore(self):
         df=self.read_data()
-        print(df)
+        df['summary_len']=df['summary'].map(lambda x:len(str(x)))
+        df['text_len']=df['text'].map(lambda x:len(str(x)))
+
+        # 数据探索
+        print(df.head())
+        print(df.columns)
+        print(df.info())
+        print(df['summary_len'].describe())
+        print(df['text_len'].describe())
 
 
 
 
-DealData().data_explore()
+
+# DealData().data_explore()
