@@ -19,25 +19,27 @@ import torch
 # 链表
 # 树相关
 
-a=[{'rouge-1': {'r': 0.27631578947368424, 'p': 0.20588235294117646, 'f': 0.23595505128645383}, 'rouge-2': {'r': 0.09523809523809523, 'p': 0.062111801242236024, 'f': 0.07518796514641898}, 'rouge-l': {'r': 0.22429906542056074, 'p': 0.11594202898550725, 'f': 0.15286623754533665}}]
-print(a[0])
-for k in a[0]:
-    print(a[0][k]['f'])
-def numDifferentIntegers(nums) :
-    # 最大连续乘积
-    res=nums[0]
-    max_dp=[0]*len(nums)
-    min_dp=[0]*len(nums)
-    max_dp[0]=min_dp[0]=nums[0]
 
-    for i in range(1,len(nums)):
-        v=(max_dp[i-1]*nums[i],min_dp[i-1]*nums[i],nums[i])
-        min_dp[i]=min(v)
-        max_dp[i]=max(v)
-        res=max(max_dp[i],res)
+def numDifferentIntegers(s) :
+    # 最长回文子串
+    res=''
+    for i in range(len(s)):
+        left=i-1 if i>0 else 0
+        right=i+1
+        word=s[i]
+        while right<len(s)and s[right]==s[i]:
+            word=word+s[right]
+            right+=1
+        while left>=0 and right<len(s) and s[left]==s[right]:
+            word=s[left]+word+s[right]
+            left-=1
+            right+=1
+
+        if len(word)>len(res):
+            res=word
     return res
 
-# print(numDifferentIntegers([1,-1,0,2,-2,-1,0]))
+print(numDifferentIntegers('abccb'))
 
 
 
