@@ -20,26 +20,10 @@ import torch
 # 树相关
 
 
-def numDifferentIntegers(s) :
-    # 最长回文子串
-    res=''
-    for i in range(len(s)):
-        left=i-1 if i>0 else 0
-        right=i+1
-        word=s[i]
-        while right<len(s)and s[right]==s[i]:
-            word=word+s[right]
-            right+=1
-        while left>=0 and right<len(s) and s[left]==s[right]:
-            word=s[left]+word+s[right]
-            left-=1
-            right+=1
-
-        if len(word)>len(res):
-            res=word
-    return res
-
-print(numDifferentIntegers('abccb'))
+def numDifferentIntegers(nums) :
+    # 最大连续乘积
+    pass
+print(numDifferentIntegers([-2,1,0,-1,-1]))
 
 
 
