@@ -55,7 +55,7 @@ class TrainModel(object):
         # 5 摘要提取：textrank(TextRank4Keyword)
         tr4s = TextRank4Sentence()
         # 英文单词小写，进行词性过滤并剔除停用词
-        tr4s.analyze(text=text, lower=True, source='all_filters')
+        tr4s.analyze(text=text , lower=True, source='all_filters')
         print('TextRank4Keyword-textrank-摘要提取:')
 
         pred_tup=tr4s.get_key_sentences(num=3)
