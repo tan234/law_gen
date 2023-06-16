@@ -12,23 +12,33 @@
 # 12 不同路径
 # 13 最长不重复子串
 # 14 最长公共子序列
+# 15 实现dropout
+
 import copy
+import random
 import re
 
 import numpy as np
 import torch
+import random
+import math
+def dropout(x,p=0.5):
+    # 训练
+    # 实现dropout
+    n=len(x)
+    res=[0]*int(p*n)+[1]*(n-int(p*n))
+    random.shuffle(res)
+    return [i*j for i,j in zip(x,res)]
 
-# 链表
-# 树相关
-
-def longestCommonSubsequence_14(s1,s2):
-    '''
-    最长公共子序列
-    '''
-    pass
-
-print(longestCommonSubsequence_14('anacasafrw','ancwc'))
 class al:
+    def dropout_15(self, x, p=.5):
+        '''实现dropout'''
+        n = len(x)
+        c_0 = int(p * n)
+
+        res = [0] * c_0 + [1] * (n - c_0)
+        random.shuffle(res)
+        return [i * j for i, j in zip(x, res)]
     def longestCommonSubsequence_14(self,text1: str, text2: str) -> int:
         '''
         最长公共子序列:给定两个字符串 text1 和 text2，返回这两个字符串的最长 公共子序列 的长度。如果不存在 公共子序列 ，返回 0
@@ -379,17 +389,7 @@ class al:
 
         return res
 
-    # a=[1,2,3,4]
-    # b=copy.deepcopy(a)
-    # a.pop(1)
-    # print(a.index(2))
-    # # a.insert(1,'a')
-    # # a.insert(0,'a')
-    # a.insert(1,'a')
-    #
-    # print(a)
 
-    # print(permute_8([]))
 
 
     def  waysToChange_7( n: int):

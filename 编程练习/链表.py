@@ -5,8 +5,12 @@ class ListNode(object):
         self.val=val
         self.next=None
 
-def mergeListNode(list1,list2):
+def reverseList(list1):
+
     pass
+
+
+
 
 node1=ListNode(1)
 node2=ListNode(2)
@@ -19,8 +23,8 @@ node1.next=node2
 node2.next=node3
 
 node4.next=node5
-# res=reverseList(node1)
-res=mergeListNode(node1,node4)
+res=reverseList(node1)
+# res=mergeListNode(node1,node4)
 while res:
     print(res.val)
     res=res.next
