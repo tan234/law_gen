@@ -22,13 +22,6 @@ import numpy as np
 import torch
 import random
 import math
-def dropout(x,p=0.5):
-    # 训练
-    # 实现dropout
-    n=len(x)
-    res=[0]*int(p*n)+[1]*(n-int(p*n))
-    random.shuffle(res)
-    return [i*j for i,j in zip(x,res)]
 
 class al:
     def dropout_15(self, x, p=.5):
