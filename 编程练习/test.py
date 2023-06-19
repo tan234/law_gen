@@ -9,19 +9,85 @@
 # 9 链表相关：1 创建链表，2 反转链表，3合并两个有序列表
 # 10 三个数之和为0
 # 11 最大连续乘积
+# 12 不同路径
+# 13 最长不重复子串
+# 14 最长公共子序列
+# 15 实现dropout
 
 import copy
+import random
 import re
 
 import numpy as np
 import torch
+import random
+import math
 
-# 链表
-# 树相关
-
-
-
+# print(drop_out([-2,4,1,2,4,-1,-1,1,0,-5]))
 class al:
+    def dropout_15(self, x, p=.5):
+        '''实现dropout'''
+        n = len(x)
+        c_0 = int(p * n)
+
+        res = [0] * c_0 + [1] * (n - c_0)
+        random.shuffle(res)
+        return [i * j for i, j in zip(x, res)]
+    def longestCommonSubsequence_14(self,text1: str, text2: str) -> int:
+        '''
+        最长公共子序列:给定两个字符串 text1 和 text2，返回这两个字符串的最长 公共子序列 的长度。如果不存在 公共子序列 ，返回 0
+        rouge-l的计算，分子就是最长公共子序列
+        '''
+
+        dp = [[0] * (len(text2) + 1) for _ in range(len(text1) + 1)]
+
+        for i in range(1, len(text1) + 1):
+            for j in range(1, len(text2) + 1):
+                if text1[i - 1] == text2[j - 1]:
+
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                else:
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+        return dp[-1][-1]
+    def lengthOfLongestSubstring_13(self,s: str) -> int:
+        '''
+        请从字符串中找出一个最长的不包含重复字符的子字符串，计算该最长子字符串的长度。
+        方法：维护一个list，如果新加的存在，就去掉重复之前的数据
+        '''
+        # index=0
+        res_list = []
+        res = 0
+        for i in range(len(s)):
+
+            if s[i]  in res_list:
+                idx = res_list.index(s[i])
+                res_list = res_list[idx + 1:] if idx + 1 < len(res_list) else []
+
+            res_list.append(s[i])
+            res = max(len(res_list), res)
+        return res
+
+    def uniquePaths_12(self,m: int, n: int) -> int:
+        '''
+        一个机器人位于一个 m x n 网格的左上角 （起始点在下图中标记为 “Start” ）。
+        机器人每次只能向下或者向右移动一步。机器人试图达到网格的右下角（在下图中标记为 “Finish” ）。
+        问总共有多少条不同的路径？
+        '''
+        dp = [[0] * n for i in range(m)]
+        dp[0][0] = 1
+        for i in range(m):
+            dp[i][0] = 1
+        for j in range(n):
+            dp[0][j] = 1
+
+        for i in range(1, m):
+            for j in range(1, n):
+                dp[i][j] = dp[i - 1][j] + dp[i][j - 1]
+
+        return dp[-1][-1]
+
+    # print(uniquePaths(3, 3))
+
     def maxProduct_11(self,nums) -> int:
         '''
         乘积最大子数组:给你一个整数数组 nums ，请你找出数组中乘积最大的非空连续子数组（该子数组中至少包含一个数字），并返回该子数组所对应的乘积。
@@ -317,17 +383,7 @@ class al:
 
         return res
 
-    # a=[1,2,3,4]
-    # b=copy.deepcopy(a)
-    # a.pop(1)
-    # print(a.index(2))
-    # # a.insert(1,'a')
-    # # a.insert(0,'a')
-    # a.insert(1,'a')
-    #
-    # print(a)
 
-    # print(permute_8([]))
 
 
     def  waysToChange_7( n: int):
