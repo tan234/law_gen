@@ -38,6 +38,7 @@ config={
 
 
 }
+#------encoder-----
 class Encoder(nn.Module):
     '''
     输入:X,embedding,position-encoder
@@ -160,6 +161,55 @@ def get_attn_pad_mask(seq_q, seq_k):
     pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)#(只对k进行了padmask,没有考虑q是否mask)
     return pad_attn_mask.expand(batch_size, len_q, len_k)
 
+class MultiHeadAttention(nn.Module):
+
+    def __init__(self):
+        super(MultiHeadAttention, self).__init__()
+        self.n_heads=config['n_heads']
+        self.emb_size=config['emb_size']
+        self.d_k=config['d_k']
+        self.d_v=config['d_v']
+
+
+        self.W_Q = nn.Linear(self.emb_size, self.d_k * self.n_heads, bias=False)#[emb,d_k*head]
+        self.W_K = nn.Linear(self.emb_size, self.d_k * self.n_heads, bias=False)
+        self.W_V = nn.Linear(self.emb_size, self.d_v * self.n_heads, bias=False)
+        # 三个矩阵，分别对输入进行三次线性变化
+
+        self.fc = nn.Linear(self.n_heads * self.d_v, self.emb_size, bias=False)
+        # 变换维度
+
+    def forward(self, input_Q, input_K, input_V, attn_mask):
+        '''
+        因为要QKT,所以要求 d_k=d_q
+        input_Q: [batch_size, len_q, emb_size]
+        input_K: [batch_size, len_k, emb_size]
+        input_V: [batch_size, len_v(=len_k), emb_size]
+        attn_mask: [batch_size, seq_Q, seq_K]
+        '''
+
+        residual, batch_size = input_Q, input_Q.size(0)
+        # 生成Q，K，V矩阵:[batch_size,n_heads, seq_len_q,d_k ]
+        Q = self.W_Q(input_Q).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
+        K = self.W_K(input_K).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
+        V = self.W_V(input_V).view(batch_size, -1, self.n_heads, self.d_v).transpose(1, 2)
+
+
+        attn_mask = attn_mask.unsqueeze(1).repeat(1, self.n_heads, 1, 1)#[batch_size, n_heads, seq_q, seq_k]
+
+        context, attn = ScaledDotProductAttention().forward(Q, K, V, attn_mask)#计算softmax(qk)V
+        # context: [batch_size, n_heads, len_q, d_v],
+        # attn: [batch_size, n_heads, len_q, len_k]
+
+
+        context = context.transpose(1, 2).reshape(batch_size, -1, self.n_heads * self.d_v)
+        # context: [batch_size, len_q, n_heads * d_v]
+
+        output = self.fc(context)
+        # [batch_size, len_q, emb_size]
+
+        # Add & Norm
+        return nn.LayerNorm(self.emb_size)(output + residual), attn
 
 class EncoderLayer(nn.Module):
     def __init__(self):
@@ -181,7 +231,8 @@ class EncoderLayer(nn.Module):
         # attn: [batch_size, n_heads, src_len, src_len] 每一个头一个注意力矩阵
         # enc_inputs to same Q,K,V
         # enc_inputs乘以WQ，WK，WV生成QKV矩阵
-        enc_outputs, attn = self.enc_self_attn.forward(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask) # enc_outputs: [batch_size, seq_len, emb_size],
+        enc_outputs, attn = self.enc_self_attn.forward(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask)
+        # enc_outputs: [batch_size, seq_len, emb_size],
 
 
         # ---------FFN+addnorm 层--------------
@@ -191,53 +242,6 @@ class EncoderLayer(nn.Module):
 
         return enc_outputs, attn
 
-class MultiHeadAttention(nn.Module):
-    def __init__(self):
-        super(MultiHeadAttention, self).__init__()
-        self.n_heads=config['n_heads']
-        self.emb_size=config['emb_size']
-        self.d_k=config['d_k']
-        self.d_v=config['d_v']
-
-
-        self.W_Q = nn.Linear(self.emb_size, self.d_k * self.n_heads, bias=False)
-        self.W_K = nn.Linear(self.emb_size, self.d_k * self.n_heads, bias=False)
-        self.W_V = nn.Linear(self.emb_size, self.d_v * self.n_heads, bias=False)
-        # 三个矩阵，分别对输入进行三次线性变化
-
-        self.fc = nn.Linear(self.n_heads * self.d_v, self.emb_size, bias=False)
-        # 变换维度
-
-    def forward(self, input_Q, input_K, input_V, attn_mask):
-        '''
-        因为要QKT,所以要求 d_k=d_q
-        input_Q: [batch_size, len_q, emb_size]
-        input_K: [batch_size, len_k, emb_size]
-        input_V: [batch_size, len_v(=len_k), emb_size]
-        attn_mask: [batch_size, seq_len, seq_len]
-        '''
-
-        residual, batch_size = input_Q, input_Q.size(0)
-        # 生成Q，K，V矩阵:[batch_size,n_heads, seq_len_q,d_k ]
-        Q = self.W_Q(input_Q).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
-        K = self.W_K(input_K).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
-        V = self.W_V(input_V).view(batch_size, -1, self.n_heads, self.d_v).transpose(1, 2)
-
-
-        attn_mask = attn_mask.unsqueeze(1).repeat(1, self.n_heads, 1, 1)#[batch_size, n_heads, seq_len, seq_len]
-
-        context, attn = ScaledDotProductAttention().forward(Q, K, V, attn_mask)#计算softmax(qk)V
-        # context: [batch_size, n_heads, len_q, d_v],
-        # attn: [batch_size, n_heads, len_q, len_k]
-
-        context = context.transpose(1, 2).reshape(batch_size, -1, self.n_heads * self.d_v)
-        # context: [batch_size, len_q, n_heads * d_v]
-
-        output = self.fc(context)
-        # [batch_size, len_q, emb_size]
-
-        # Add & Norm
-        return nn.LayerNorm(self.emb_size)(output + residual), attn
 
 
 class ScaledDotProductAttention(nn.Module):
@@ -256,7 +260,7 @@ class ScaledDotProductAttention(nn.Module):
         Q: [batch_size, n_heads, len_q, d_k]
         K: [batch_size, n_heads, len_k, d_k]
         V: [batch_size, n_heads, len_v(=len_k), d_v]
-        attn_mask: [batch_size, n_heads, seq_len, seq_len]
+        attn_mask: [batch_size, n_heads, seq_q, seq_k]
         '''
 
         scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(config['d_k']) # scores : [batch_size, n_heads, len_q, len_k]
