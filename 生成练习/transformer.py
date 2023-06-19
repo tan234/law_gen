@@ -23,18 +23,19 @@ encoder_layers = 1
 decoder_layers = 1
 
 config={
-    'vocab_size':64,
+    'vocab_size':5000,#encoder vocab
     'emb_size':128,
     'seq_len':16,
-    'n_layers':6,
-    'n_heads':16,
+    'encoder_layers':1,
+    'decoder_layers':1,
+    'n_heads':6,
     'd_k':64,
     'd_v':64,
     'd_ff':128,
-    'tgt_vocab_size':'10',
+    'tgt_vocab_size':'21',
     'tgt_len':64,
     'tgt_emb':128,
-    
+
 
 }
 class Encoder(nn.Module):
@@ -45,11 +46,11 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
 
-        self.word_emb = nn.Embedding(config['vocab_size'], config['emb_size'])
+        self.word_emb = nn.Embedding(config['vocab_size'], config['emb_size'])#word embedding随机生成
 
         self.pos_emb = PositionalEncoding(config['seq_len'],config['emb_size'])
         # 计算位置向量
-        self.layers = nn.ModuleList([EncoderLayer() for _ in range(config['n_layers'])])
+        self.layers = nn.ModuleList([EncoderLayer() for _ in range(config['encoder_layers'])])
         # 使用 nn.ModuleList() 里面的参数是列表，列表里面存了 n_layers 个 Encoder Layer
         # 由于我们控制好了 Encoder Layer 的输入和输出维度相同，所以可以直接用个 for 循环以嵌套的方式，
         # 将上一次 Encoder Layer 的输出作为下一次 Encoder Layer 的输入
@@ -67,9 +68,9 @@ class Encoder(nn.Module):
         enc_outputs = self.pos_emb.forward(enc_outputs.transpose(0, 1)).transpose(0, 1)#  enc_outputs [batch_size, seq_len, emb]
 
         # 计算得到encoder-attention的pad martix,因为是maskpad 所以对没有embedding的数据进行操作？
-        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)# enc_self_attn: [batch_size, seq_len, seq_len]
+        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)# enc_self_attn: [batch_size, seq_k, seq_q]
 
-        enc_self_attns = []# 创建一个列表，保存接下来要返回的字-字attention的值，不参与任何计算，供可视化用
+        # enc_self_attns = []# 创建一个列表，保存接下来要返回的字-字attention的值，不参与任何计算，供可视化用
 
         # 循环每个encoder
         for layer in self.layers:
@@ -78,7 +79,7 @@ class Encoder(nn.Module):
             # 再传进来就不用positional decoding
             enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)# enc_outputs: [batch_size, seq_len, emb]
             # 记录下每一次的attention
-            enc_self_attns.append(enc_self_attn)
+            # enc_self_attns.append(enc_self_attn)
 
         # return enc_outputs, enc_self_attns
         # 只用encoder分类时，接入一个linear变成batch,num
@@ -94,7 +95,7 @@ class PositionalEncoding(nn.Module):
     def __init__(self, seq_len,emb_size, dropout=0.1):
         super(PositionalEncoding, self).__init__()
 
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout)#输出非0位置变为 x/(1-p)，为0 的个数每次是不确定的
 
         pe = torch.zeros(seq_len, emb_size)
         # pe [seq_len, emb_size]
@@ -105,9 +106,9 @@ class PositionalEncoding(nn.Module):
         _2i = torch.arange(0, emb_size, step=2).float()
         # _2i [emb_size / 2]
 
-        # 两个相乘的维度为[max_len,emb_size/2]
-        pe[:, 0::2] = torch.sin(position / (10000 ** (_2i / emb_size)))
-        pe[:, 1::2] = torch.cos(position / (10000 ** (_2i / emb_size)))
+        # 两个相乘的维度为[max_len,emb_size/2];针对一行（一个seq）
+        pe[:, 0::2] = torch.sin(position / (10000 ** (_2i / emb_size))) #一个seq偶数位置
+        pe[:, 1::2] = torch.cos(position / (10000 ** (_2i / emb_size)))# 奇数位置
 
 
         pe = pe.unsqueeze(1)
@@ -156,7 +157,7 @@ def get_attn_pad_mask(seq_q, seq_k):
     batch_size, len_k = seq_k.size()
     # pad的位置标记上True
     # seq_q:[[1,2,3,4,0],[1,2,4,5,0]] ->pad_attn_mask [[F,F,F,F,T],[F,F,F,F,T]]-> [batch_size, 1, len_k]
-    pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)
+    pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)#(只对k进行了padmask,没有考虑q是否mask)
     return pad_attn_mask.expand(batch_size, len_q, len_k)
 
 
@@ -304,7 +305,7 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.tgt_emb = nn.Embedding(config['tgt_vocab_size'], config['tgt_emb'])
         self.pos_emb = PositionalEncoding(config['tgt_len'],config['tgt_emb'])
-        self.layers = nn.ModuleList([DecoderLayer() for _ in range(config['n_layers'])])
+        self.layers = nn.ModuleList([DecoderLayer() for _ in range(config['decoder_layers'])])
 
     def forward(self, dec_inputs, enc_inputs, enc_outputs):
         '''

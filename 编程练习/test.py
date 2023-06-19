@@ -23,6 +23,35 @@ import torch
 import random
 import math
 
+def drop_out(nums):
+    # 三个数之和为0
+    nums.sort()
+    res=[]
+    for i in range(len(nums)-2):
+        if i>0 and nums[i]==nums[i-1]:
+            continue
+        target=nums[i]
+        left=i+1
+        right=len(nums)-1
+
+        while left<right:
+
+            v=nums[left]+nums[right]
+
+            if v==-target:
+                res.append([nums[i],nums[left],nums[right]])
+                left+=1
+                right-=1
+                while left<right and nums[left]==nums[left-1]:
+                    left+=1
+            elif v>-target:
+                right-=1
+            else:left+=1
+    return res
+
+
+
+print(drop_out([-2,4,1,2,4,-1,-1,1,0,-5]))
 class al:
     def dropout_15(self, x, p=.5):
         '''实现dropout'''
