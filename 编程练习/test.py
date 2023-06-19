@@ -20,12 +20,6 @@ import torch
 # 树相关
 
 
-def numDifferentIntegers(nums) :
-    # 最大连续乘积
-    pass
-print(numDifferentIntegers([-2,1,0,-1,-1]))
-
-
 
 class al:
     def maxProduct_11(self,nums) -> int:
