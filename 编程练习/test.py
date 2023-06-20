@@ -23,7 +23,21 @@ import torch
 import random
 import math
 
-# print(drop_out([-2,4,1,2,4,-1,-1,1,0,-5]))
+def a(s1,s2):
+    # 最长公共子序列
+
+    dp=[[0]*(len(s2)+1)for _ in range(len(s1)+1)]
+
+    for i in range(1,len(s1)+1):
+        for j in range(1,len(s2)+1):
+            if s1[i-1]==s2[j-1]:
+
+                dp[i][j]=dp[i-1][j-1]+1
+            else:
+                dp[i][j]=max(dp[i-1][j],dp[i][j-1])
+    return dp[-1][-1]
+
+print(a('abfiwxava','dajaovs'))
 class al:
     def dropout_15(self, x, p=.5):
         '''实现dropout'''
@@ -49,6 +63,7 @@ class al:
                 else:
                     dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
         return dp[-1][-1]
+
     def lengthOfLongestSubstring_13(self,s: str) -> int:
         '''
         请从字符串中找出一个最长的不包含重复字符的子字符串，计算该最长子字符串的长度。

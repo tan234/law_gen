@@ -9,10 +9,16 @@ b=nn.LayerNorm([2])(a)
 # 参数为两个维度（3，2），得到一个方差
 
 # https://blog.csdn.net/weixin_39228381/article/details/107939602
+import numpy as np
+attn_shape=[5,3,3]
+subsequence_mask = np.triu(np.ones(attn_shape), k=1)  # [batch_size, tgt_len, tgt_len]
+print(subsequence_mask)
+subsequence_mask = torch.from_numpy(subsequence_mask).byte()  # 转化成byte类型的tensor
+print(subsequence_mask)
 
-print(a)
-print(b)
-print(a.size(),b.size())
+# print(a)
+# print(b)
+# print(a.size(),b.size())
 # seq_len=7
 # emb_size=5
 # a=[[[1,2,3,4,],[6,7,8,9]],[[1,1,1,1,],[2,2,2,2]]]

@@ -14,7 +14,7 @@ ROUGE-L记录最长的公共子序列。
 总分计算方式为：0.2f-score(R1)+0.3f-score(R2)+0.5*f-score(RL)。
 
 2 transformer
-xemb+posemb->encoder(attention[k,q,v计算，k,v,q来自x*W]-addnorm-ffn-addnorm)->decoder
+xemb+posemb->encoder{attention[k,q,v计算，k,v,q来自x*W]-addnorm-ffn[f(xw)w]-addnorm}->decoder{attention->addnorm->ffn->addnorm}
 encoder层:
 - X:batch,seq
   (1) word emb :随机生成
@@ -23,7 +23,17 @@ encoder层:
 
 
 mask
-(1) pad mask:输入seq_k,seq_q;输出(batch,seq_k,seq_q)，因为这个要和 (k*q^T/dk)相加,所以形状一样，只对k进行了pad mask
+(1) pad mask:
+   1 encoder 自己的PAD mask
+   2 decoder 自己的PAD mask
+   3 在decoder 中的，encoder decoder attention 层，已经对decoder 自己进行了mask，这里面还差一个encoder decoder mask
+(2) decoder mask:decoder 中当前位置之后的位置，设为 1（mask）,
 
+- decoder层
+- X:batch,seq
+  (1) word emb :随机生成
+- 
+torch	1.10.1
 
-torch	1.10.1	
+问题：
+decoder训练和测试，输入的mask问题？

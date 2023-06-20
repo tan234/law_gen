@@ -1,5 +1,5 @@
 
-from dedal_data import DealData
+from deal_data import DealData
 from textrank_model import TextRank
 from evaluetion import EvaluationTestData
 import numpy as np
