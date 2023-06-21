@@ -34,12 +34,12 @@ class DealData:
         return res
 
     '''统一句子长度'''
-    def pad_len(self,sentences):
+    def pad_len(self,sentences,seq_len):
         res=[]
         for sen in sentences:
-            if len(sen)<self.config['seq_len']:
-                sen=sen+[0]*(self.config['seq_len']-len(sen))
-            else:sen=sen[:self.config['seq_len']]
+            if len(sen)<seq_len:
+                sen=sen+[0]*(seq_len-len(sen))
+            else:sen=sen[:seq_len]
             res.append(sen)
         return res
 
@@ -72,12 +72,12 @@ class DealData:
         return word2idx
 
     '''word2id'''
-    def word_to_index(self, sentence, word2idx):
+    def word_to_index(self, sentence, word2idx,seq_len):
         """
         将词转换成索引
         """
         sentence_index = [[word2idx.get(item, word2idx["UNK"]) for item in sent] for sent in sentence]
-        sentence_index=self.pad_len(sentence_index)
+        sentence_index=self.pad_len(sentence_index,seq_len)
 
         return sentence_index
 
@@ -109,14 +109,14 @@ class DealData:
         test_df = df[int(len(df) * .7):]
 
         # 5 将词转换成idx
-        idx_train = self.word_to_index(self.cut_word(train_df['text'].to_list()), vocab)
-        idx_train_y = self.word_to_index(self.cut_word(train_df['summary'].to_list()), vocab)
-        idx_test = self.word_to_index(self.cut_word(test_df['text'].to_list()), vocab)
-        idx_test_y = self.word_to_index(self.cut_word(test_df['summary'].to_list()), vocab)
+        idx_train = self.word_to_index(self.cut_word(train_df['text'].to_list()), vocab,seq_len=self.config['encoder_len'])
+        idx_train_y = self.word_to_index(self.cut_word(train_df['summary'].to_list()), vocab,seq_len=self.config['decoder_len'])
+        idx_test = self.word_to_index(self.cut_word(test_df['text'].to_list()), vocab,seq_len=self.config['encoder_len'])
+        idx_test_y = self.word_to_index(self.cut_word(test_df['summary'].to_list()), vocab,seq_len=self.config['decoder_len'])
 
 
         return train_df,test_df,idx_train,idx_train_y,idx_test,idx_test_y
-DealData().load_data()
+# DealData().load_data()
 
 
 

@@ -19,6 +19,9 @@ from log import *
 # from word_emb import *
 # from encoder import *
 from transformer_model import Transformer
+from rouge  import Rouge
+from nltk.translate.bleu_score import sentence_bleu
+
 
 class train_model:
 
@@ -33,15 +36,10 @@ class train_model:
         train_df, test_df, idx_train, idx_train_y, idx_test, idx_test_y=deal_d.load_data()
 
         print('训练集数据量：',len(train_df))
-        print(idx_train.shape(),idx_train_y.shape())
-        'AttributeError: 'list' object has no attribute 'shape''
-        kk
+        print(len(idx_train),len(idx_train[0]))
+        print(len(idx_train_y),len(idx_train_y[0]))
 
-        # -------word2vec-----------
-        # transformer没用word2vec
-        # train_vector = word_to_vec(train_vector,vocab_dict)
-        # dev_vector = word_to_vec(dev_vector,vocab_dict)
-        # test_vector= word_to_vec(test_vector,vocab_dict)
+
         give_emb=False
 
         '''参数'''
@@ -74,7 +72,8 @@ class train_model:
 
         '''模型训练 验证集调参'''
         optimizer = torch.optim.AdamW(model.parameters(), train_config['lr'])
-        loss = nn.CrossEntropyLoss()
+        loss = nn.CrossEntropyLoss()# 使用ignore_index参数：可以忽略某一项y的损失，一般用于labelPAD的情况。，还有一个weihgt参数，可以给label加权重
+
 
 
         self.train_data(train_config['epochs'],model, train_loader, device, optimizer, dev_loader,loss)
@@ -109,7 +108,7 @@ class train_model:
         best_acc = 0.0
         train_loss=[]
         train_acc=[]
-        devacc_list=[]
+        testacc_list=[]
         for epoch in range(epochs):
             train_loss_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
 
@@ -120,10 +119,11 @@ class train_model:
                 X = X.to(device)
                 y = Y.to(device)
                 # t1=time.time()
-                y_hat = model(X,y)  #batch*numclass
-                # print(y_hat[:3])
-                # print(y[:3])
-                # kk
+                # y_hat = model(X,y)  #batch*numclass
+                y_hat = model.forward(X, y) # [batch_size, tgt_len, tgt_vocab_size]
+
+                y_hat=y_hat.view(-1,y_hat.size()[-1])#[batch_size*tgt_len, tgt_vocab_size]
+                y=y.view(-1)#真实值平铺 batch_size*tgt_len
 
                 # print('模型运行时间:',time.time()-t1)
                 l = loss(y_hat, y)  # 交叉熵输入要求yhat：batch*numclass; y:batch*1
@@ -133,6 +133,7 @@ class train_model:
                 optimizer.step()  # 更新参数
 
                 train_loss_sum += l.cpu().item()
+                # 模型评估指标计算
                 train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
                 n += y.shape[0]
                 batch_count += 1
@@ -159,7 +160,28 @@ class train_model:
 
         self.train_plt(np.arange(1,epochs+1,1),train_loss,train_acc,devacc_list)
 
+    def bleu_value(self):
+        reference = [
+            'this is a dog'.split(),
+            'it is dog'.split(),
+            'dog it is'.split(),
+            'a dog, it is'.split()
+        ]
+        candidate = 'it is dog'.split()
+        print('BLEU score -> {}'.format(sentence_bleu(reference, candidate)))
 
+        candidate = 'it is a dog'.split()
+        print('BLEU score -> {}'.format(sentence_bleu(reference, candidate)))
+    def rouge_value(self):
+        rouge = Rouge()
+
+        rouge_scores = rouge.get_scores(" ".join(jieba.cut(self.y_pred))," ".join(jieba.cut(self.y_true)))#"Installing collected packages", "Installing "
+        # print('rouge_scores:', rouge_scores)
+        rouge_f=[rouge_scores[0][k]['f'] for k in rouge_scores[0]]
+        score=0.2*rouge_f[0]+0.3*rouge_f[1]+0.5*rouge_f[2]
+        # rl_p = rouge_scores[0]['rouge-l']['p']
+        # print("score", score)
+        return score
 
     '''可视化训练结果'''
     def train_plt(self,epoch,train_loss,train_acc,dev_acc):

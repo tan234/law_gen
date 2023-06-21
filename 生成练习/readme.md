@@ -32,8 +32,30 @@ mask
 - decoder层
 - X:batch,seq
   (1) word emb :随机生成
-- 
+
+
+encoder-decoder:
+
+- 训练
+输入:(其中seq_x，和seq_y不一样，但是vocab)
+X_input():[batch,seq_x]
+Y_input():[batch,seq_y]
+
+输出：[batch_size, seq_y, tgt_vocab_size] softmax后取最大的一个概率得到 [batch,seq_y]
+
+损失：交叉熵loss( y_input)
+
+计算正确率：rouge
+
+- 预测
+预测时，输出seq的长度如何定？
+https://work.datafountain.cn/forum?id=130&type=2&source=1
+- 问题：
+文本生成的问题，比如说重复单词，重复句子，OOV
+- 需要sos，与eos吗？
 torch	1.10.1
+
+评估：BLEU bleu是一种文本生成评测指标，考虑生成摘要与参考摘要n元组共同出现的程度。一般计算所有元祖的bleu得分之和求取平均数，下面为计算公式：
 
 问题：
 decoder训练和测试，输入的mask问题？

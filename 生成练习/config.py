@@ -26,11 +26,13 @@ cur_path = os.path.dirname(__file__)
 # }
 
 data_config={
-    'num_classes':10,
+    # 'num_classes':10,
     'vocab_path':os.path.join(cur_path,"model/vocab.txt"),
-    'vocab_size': 56850,
-    'seq_len':16,
-    'stopword_path':os.path.join(cur_path,"model/stop_word.txt")
+    'enc_vocab_size': 56850,
+    'dec_vocab_size': 56850,
+    'enc_len':64,
+    'stopword_path':os.path.join(cur_path,"model/stop_word.txt"),
+    'dec_len':16
 }
 
 train_config={
@@ -58,17 +60,16 @@ train_config={
 
 
 transformer_config={
-        # encoder
-        'emb_size':512,#positional encoding 维度,这两个要维度相加，应该是一样的维度
-        'd_ff' : 2048 ,# FeedForward dimension
-        'd_k':64,# 变成K，Q，V矩阵的维度,K和Q一定是一样的，因为要K乘Q的转置,V不一定,这里我们认为是一样的
-        'd_v': 64,  # dimension of K(=Q), V
+    'emb_size':512,#positional encoding 维度,这两个要维度相加，应该是一样的维度
+    'd_ff' : 2048 ,# FeedForward dimension
+    'd_k':64,# 变成K，Q，V矩阵的维度,K和Q一定是一样的，因为要K乘Q的转置,V不一定,这里我们认为是一样的
+    'd_v': 64,  # dimension of K(=Q), V
     'n_layers': 2,# encoder和decoder各有多少层
     'n_heads':  8,# multi-head attention有几个头
     'transformer_model_path':'result/transformer_model.pth',
-# decoder
-'tgt_emb':512,
-    'tgt_len':8,
+    'enc_layers':2,
+    'dec_layers':2,
+    'tgt_emb':512,
     'tgt_vocab_size':56850
 
 }

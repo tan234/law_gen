@@ -2,19 +2,40 @@
 
 import torch
 import torch.nn as nn
+import numpy as np
+criterion = nn.CrossEntropyLoss()  # 使用ignore_index参数，使得计算损失的时候不计算pad的损失
+
 # LayerNorm
-a = torch.tensor([[2,4],[3,9],[2,4]]).float()
-b=nn.LayerNorm([2])(a)
+
+from nltk.translate.bleu_score import sentence_bleu
+
+
+def bleu_value():
+    reference = [
+        'this is a dog'.split(),
+        'it is dog'.split(),
+        'dog it is'.split(),
+        'a dog, it is'.split()
+    ]
+    candidate = 'it is dog'.split()
+    print('BLEU score -> {}'.format(sentence_bleu(reference, candidate)))
+
+    candidate = 'it is a dog'.split()
+    print('BLEU score -> {}'.format(sentence_bleu(reference, candidate)))
+
+    # sentence_bleu(reference, candidate)
+
+bleu_value()
 # a.size()=(3,2);参数2 表示维度，的到 3 个均值方差mean（2+4）/var(2,4)
 # 参数为两个维度（3，2），得到一个方差
 
 # https://blog.csdn.net/weixin_39228381/article/details/107939602
-import numpy as np
-attn_shape=[5,3,3]
-subsequence_mask = np.triu(np.ones(attn_shape), k=1)  # [batch_size, tgt_len, tgt_len]
-print(subsequence_mask)
-subsequence_mask = torch.from_numpy(subsequence_mask).byte()  # 转化成byte类型的tensor
-print(subsequence_mask)
+# import numpy as np
+# attn_shape=[5,3,3]
+# subsequence_mask = np.triu(np.ones(attn_shape), k=1)  # [batch_size, tgt_len, tgt_len]
+# print(subsequence_mask)
+# subsequence_mask = torch.from_numpy(subsequence_mask).byte()  # 转化成byte类型的tensor
+# print(subsequence_mask)
 
 # print(a)
 # print(b)

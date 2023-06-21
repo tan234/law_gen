@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as Data
 
-# from config import *
+from config import *
 #超参
 
 # heads = 6
@@ -22,22 +22,21 @@ import torch.utils.data as Data
 # encoder_layers = 1
 # decoder_layers = 1
 
-config={
-    'vocab_size':5000,#encoder vocab
-    'emb_size':128,
-    'seq_len':64,
-    'encoder_layers':2,
-    'decoder_layers':2,
-    'n_heads':6,
-    'd_k':64,
-    'd_v':64,
-    'd_ff':128,
-    'tgt_vocab_size':5000,
-    'tgt_len':16,
-    'tgt_emb':128,
-
-
-}
+# config={
+#     'vocab_size':5000,#encoder vocab
+#     'emb_size':128,
+#     'seq_len':64,
+#     'encoder_layers':2,
+#     'decoder_layers':2,
+#     'n_heads':6,
+#     'd_k':64,
+#     'd_v':64,
+#     'd_ff':128,
+#     'tgt_vocab_size':5000,
+#     'tgt_len':16,
+#     'tgt_emb':128,
+#
+# }
 #------encoder-----------------------------------------
 class Encoder(nn.Module):
     '''
@@ -47,11 +46,14 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
 
-        self.word_emb = nn.Embedding(config['vocab_size'], config['emb_size'])#word embedding随机生成
+        self.transformer_cofig=transformer_config
+        self.data_cofig=data_config
 
-        self.pos_emb = PositionalEncoding(config['seq_len'],config['emb_size'])
+        self.word_emb = nn.Embedding(data_config['enc_vocab_size'], transformer_config['emb_size'])#word embedding随机生成
+
+        self.pos_emb = PositionalEncoding(data_config['enc_len'],transformer_config['emb_size'])
         # 计算位置向量
-        self.layers = nn.ModuleList([EncoderLayer() for _ in range(config['encoder_layers'])])
+        self.layers = nn.ModuleList([EncoderLayer() for _ in range(transformer_config['enc_layers'])])
         # 使用 nn.ModuleList() 里面的参数是列表，列表里面存了 n_layers 个 Encoder Layer
         # 由于我们控制好了 Encoder Layer 的输入和输出维度相同，所以可以直接用个 for 循环以嵌套的方式，
         # 将上一次 Encoder Layer 的输出作为下一次 Encoder Layer 的输入
@@ -143,7 +145,7 @@ class ScaledDotProductAttention(nn.Module):
         attn_mask: [batch_size, n_heads, seq_q, seq_k]
         '''
 
-        scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(config['d_k']) # scores : [batch_size, n_heads, len_q, len_k]
+        scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(transformer_config['d_k']) # scores : [batch_size, n_heads, len_q, len_k]
 
         scores.masked_fill_(attn_mask, -1e9)
         # attn_mask所有为True的部分（即有pad的部分），scores填充为负无穷，也就是这个位置的值对于softmax没有影响
@@ -242,10 +244,10 @@ class MultiHeadAttention(nn.Module):
 
     def __init__(self):
         super(MultiHeadAttention, self).__init__()
-        self.n_heads=config['n_heads']
-        self.emb_size=config['emb_size']
-        self.d_k=config['d_k']
-        self.d_v=config['d_v']
+        self.n_heads=transformer_config['n_heads']
+        self.emb_size=transformer_config['emb_size']
+        self.d_k=transformer_config['d_k']
+        self.d_v=transformer_config['d_v']
 
 
         self.W_Q = nn.Linear(self.emb_size, self.d_k * self.n_heads, bias=False)#[emb,d_k*head]
@@ -293,10 +295,10 @@ class PoswiseFeedForwardNet(nn.Module):
     def __init__(self):
         super(PoswiseFeedForwardNet, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(config['emb_size'], config['d_ff'], bias=False),
+            nn.Linear(transformer_config['emb_size'], transformer_config['d_ff'], bias=False),
             # nn.ReLU(),#换成gelu
             nn.GELU(),
-            nn.Linear(config['d_ff'], config['emb_size'], bias=False)
+            nn.Linear(transformer_config['d_ff'], transformer_config['emb_size'], bias=False)
         )
 
     def forward(self, inputs):
@@ -307,7 +309,7 @@ class PoswiseFeedForwardNet(nn.Module):
 
         residual = inputs
         output = self.fc(inputs)
-        return nn.LayerNorm(config['emb_size'])(output + residual) # [batch_size, seq_len, emb_size]
+        return nn.LayerNorm(transformer_config['emb_size'])(output + residual) # [batch_size, seq_len, emb_size]
 
 #-------------encoder+decoder---------------------
 
@@ -319,9 +321,9 @@ class Decoder(nn.Module):
     '''
     def __init__(self):
         super(Decoder, self).__init__()
-        self.tgt_emb = nn.Embedding(config['tgt_vocab_size'], config['tgt_emb'])
-        self.pos_emb = PositionalEncoding(config['tgt_len'],config['tgt_emb'])
-        self.layers = nn.ModuleList([DecoderLayer() for _ in range(config['decoder_layers'])])
+        self.tgt_emb = nn.Embedding(data_config['dec_vocab_size'], transformer_config['tgt_emb'])
+        self.pos_emb = PositionalEncoding(data_config['dec_len'],transformer_config['tgt_emb'])
+        self.layers = nn.ModuleList([DecoderLayer() for _ in range(transformer_config['dec_layers'])])
 
     def forward(self, dec_inputs, enc_inputs, enc_outputs):
         '''
@@ -445,7 +447,7 @@ class Transformer(nn.Module):
 
         self.encoder = Encoder()
         self.decoder = Decoder()
-        self.projection = nn.Linear(config['emb_size'], config['tgt_vocab_size'], bias=False)
+        self.projection = nn.Linear(transformer_config['emb_size'], data_config['dec_vocab_size'], bias=False)
 
     def forward(self, enc_inputs, dec_inputs):
         '''
@@ -465,27 +467,19 @@ class Transformer(nn.Module):
         # dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
 
         dec_logits = self.projection(dec_outputs)# dec_logits: [batch_size, tgt_len, tgt_vocab_size]
+        # dec_logits.view(-1, dec_logits.size(-1))
 
-        return dec_logits.view(-1, dec_logits.size(-1))
+        return dec_logits
+
 
 
 # batch=32
 # encode_seq=64
 # dec_seq=16
-# #
-# enc_input=torch.tensor([random.randint(0,1000) for i in range(batch*encode_seq)], dtype=torch.long).reshape(batch,encode_seq)
-
-# print('enc_input:',enc_input.size())
-# enc_output=Encoder().forward(enc_input)
-# print('enc_output:',enc_output.size())
 #
+# enc_input=torch.tensor([random.randint(0,1000) for i in range(batch*encode_seq)], dtype=torch.long).reshape(batch,encode_seq)
 # dec_input=torch.tensor([random.randint(0,1000) for _ in range(batch*dec_seq)], dtype=torch.long).reshape(batch,dec_seq)
 #
-# dec_out=Decoder().forward(dec_input,enc_input,enc_output)
 #
-#
-# print('dec_out:',dec_out.size())
-
-
 # y=Transformer().forward(enc_input, dec_input)
 # print(y,y.size())
