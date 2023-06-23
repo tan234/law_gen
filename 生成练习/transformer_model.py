@@ -431,6 +431,23 @@ class DecoderLayer(nn.Module):
         return dec_outputs, dec_self_attn, dec_enc_attn
 
 
+# 位置编码
+def generate_relative_embd(qS, vS, embeddings):
+    global max_pos_len
+
+    S = tf.maximum(qS, vS)
+
+    range_vec = tf.reshape(tf.range(S), [1, S])
+    range_mat = tf.tile(range_vec, [S, 1])
+
+    relative_pos_mat = range_mat - tf.transpose(range_mat)
+    relative_pos_mat = relative_pos_mat[0:qS, 0:vS]
+
+    relative_pos_mat_shifted = relative_pos_mat + max_pos_len
+
+    RE = tf.nn.embedding_lookup(embeddings, relative_pos_mat_shifted)
+
+    return RE
 
 #---------------transformer层-----------
 class Transformer(nn.Module):

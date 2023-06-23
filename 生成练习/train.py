@@ -76,13 +76,12 @@ class train_model:
 
 
 
-        self.train_data(train_config['epochs'],model, train_loader, device, optimizer, dev_loader,loss)
+        self.train_data(train_config['epochs'],model, train_loader, device, optimizer, test_loader,loss)
 
+        # 摘要预测待处理
         '''用训练好的模型预测'''
-        self.loger.logger.info('-------------预测验证集----------')
-        self.pred_save(model, dev_loader, device, dev_data, dev_pred_path)
         self.loger.logger.info('-------------预测测试集----------')
-        self.pred_save(model, test_loader, device, test_data, text_pred_path)
+        self.pred_save(model, test_loader, device, test_df, text_pred_path)
 
 
     '''保存模型在验证集上的结果'''
@@ -97,7 +96,9 @@ class train_model:
         print(classification_report(data_df[1].to_list(), data_df['pred'].to_list()))
         data_df.to_excel(save_path,index=False)
 
+    def idxtoword(self):
 
+        pass
     '''训练数据 保存最优模型'''
     def train_data(self,epochs,model,train_loader,device,optimizer,dev_loader,loss):
 
@@ -108,9 +109,10 @@ class train_model:
         best_acc = 0.0
         train_loss=[]
         train_acc=[]
-        testacc_list=[]
+        train_rouge_list=[]
+        devacc_list=[]
         for epoch in range(epochs):
-            train_loss_sum, train_acc_sum, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
+            train_loss_sum, train_rouge, n, batch_count, start = 0.0, 0.0, 0, 0, time.time()
 
             model.train()
             for X, Y in train_loader:
@@ -119,7 +121,7 @@ class train_model:
                 X = X.to(device)
                 y = Y.to(device)
                 # t1=time.time()
-                # y_hat = model(X,y)  #batch*numclass
+                n += y.shape[0]
                 y_hat = model.forward(X, y) # [batch_size, tgt_len, tgt_vocab_size]
 
                 y_hat=y_hat.view(-1,y_hat.size()[-1])#[batch_size*tgt_len, tgt_vocab_size]
@@ -132,22 +134,24 @@ class train_model:
                 l.backward()  # 损失求导
                 optimizer.step()  # 更新参数
 
-                train_loss_sum += l.cpu().item()
                 # 模型评估指标计算
-                train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
-                n += y.shape[0]
+                y = ' '.join([str(i) for i in y])
+                y_hat = y_hat.argmax(dim=1)
+                y_hat = ' '.join([str(i) for i in y_hat.tolist()])
+                train_rouge+=self.rouge_value(y,y_hat)
+
+                train_loss_sum += l.cpu().item()
                 batch_count += 1
 
 
-
-            dev_acc = self.dev_evaluate(dev_loader, model,device)
-            print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-                  % (epoch + 1, train_loss_sum / batch_count, train_acc_sum / n, dev_acc, time.time() - start))
-            self.loger.logger.info('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-                  % (epoch + 1, train_loss_sum / batch_count, train_acc_sum / n, dev_acc, time.time() - start))
+            dev_acc = self.dev_evaluate(dev_loader, model)
+            print('epoch %d, loss %.4f, train_rouge %.3f, test acc %.3f, time %.1f sec'
+                  % (epoch + 1, train_loss_sum / batch_count, train_rouge / n, dev_acc, time.time() - start))
+            self.loger.logger.info('epoch %d, loss %.4f, train_rouge %.3f, test acc %.3f, time %.1f sec'
+                  % (epoch + 1, train_loss_sum / batch_count, train_rouge / n, dev_acc, time.time() - start))
 
             train_loss.append(train_loss_sum / batch_count)
-            train_acc.append(train_acc_sum / n)
+            train_rouge_list.append(train_rouge / n)
             devacc_list.append(dev_acc)
 
             if dev_acc > best_acc:
@@ -172,10 +176,11 @@ class train_model:
 
         candidate = 'it is a dog'.split()
         print('BLEU score -> {}'.format(sentence_bleu(reference, candidate)))
-    def rouge_value(self):
-        rouge = Rouge()
 
-        rouge_scores = rouge.get_scores(" ".join(jieba.cut(self.y_pred))," ".join(jieba.cut(self.y_true)))#"Installing collected packages", "Installing "
+    def rouge_value(self,y_true,y_pred):
+        rouge = Rouge()
+        rouge_scores = rouge.get_scores(y_pred,y_true)
+
         # print('rouge_scores:', rouge_scores)
         rouge_f=[rouge_scores[0][k]['f'] for k in rouge_scores[0]]
         score=0.2*rouge_f[0]+0.3*rouge_f[1]+0.5*rouge_f[2]
@@ -217,18 +222,26 @@ class train_model:
 
 
     '''验证集评估'''
-    def dev_evaluate(self, data_iter, net, device):
-        acc_sum, n = 0.0, 0
+    def dev_evaluate(self, data_iter, net):
+        train_rouge, n = 0.0, 0
         with torch.no_grad():
-            for X, Y in data_iter:
+            for X, y in data_iter:
+
                 # if isinstance(net, torch.nn.Module):
                 net.eval()  # 评估模式, 会关闭dropout
-                acc_sum += (net(X.to(device)).argmax(dim=1) == Y.to(device)).float().sum().cpu().item()
+
+                n += y.shape[0]
+                y_hat = net.forward(X, y)  # [batch_size, tgt_len, tgt_vocab_size]
+
+                # 模型评估指标计算
+                y = ' '.join([str(i) for i in y.view(-1)])# 真实值平铺 batch_size*tgt_len
+                y_hat = y_hat.view(-1, y_hat.size()[-1])  # [batch_size*tgt_len, tgt_vocab_size]
+                y_hat = ' '.join([str(i) for i in y_hat.argmax(dim=1).tolist()])
+                train_rouge += self.rouge_value(y, y_hat)
+
                 net.train()  # 改回训练模式
-                # else:
-                    # acc_sum += (net(X).argmax(dim=1) == Y).float().sum().item()
-                n += Y.shape[0]
-        return acc_sum / n
+
+        return train_rouge / n
 
     '''batch数据集'''
     def load_batch(self,x, y, batchSize,give_emb=True):

@@ -50,12 +50,30 @@ Y_input():[batch,seq_y]
 - 预测
 预测时，输出seq的长度如何定？
 https://work.datafountain.cn/forum?id=130&type=2&source=1
+  
+训练时候的输入时input output，预测时没有output怎么办，这里面的
+output用的是上一步y的预测结果，所以需要调整模型？
+
+
+问题，训练时，用了y的上一步结果了吗？
 - 问题：
 文本生成的问题，比如说重复单词，重复句子，OOV
 - 需要sos，与eos吗？
 torch	1.10.1
 
 评估：BLEU bleu是一种文本生成评测指标，考虑生成摘要与参考摘要n元组共同出现的程度。一般计算所有元祖的bleu得分之和求取平均数，下面为计算公式：
+
+改进：
+1 相对位置编码
+https://work.datafountain.cn/forum?id=124&type=2&source=1
+2 gelu激活
+3 dropout层
+4 初始化的参数用的bert?
+5 早停，观察损失和epoch，曲线
+6 观察attention 矩阵能看出来什么？
+模型评估用的rouge是因为，我们观察了训练书记的最长公共子序列，比较符合
+
+残差连接是为了，梯度小时和模型退化？
 
 问题：
 decoder训练和测试，输入的mask问题？

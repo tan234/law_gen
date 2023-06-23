@@ -81,6 +81,23 @@ class DealData:
 
         return sentence_index
 
+    '''idx2word'''
+    def index_to_word(self,sentences):
+        # 待完成
+        # sentences:[[1,09,32,41,]]
+        # 在评估数据时使用
+        with open(self.config['vocab_path'], "r", encoding="utf-8") as f:
+            vocab = json.load(f)#{ '指挥员': 79169, '一字排开': 79170}
+        count=0
+        for k,v in vocab:
+            print(k,v)
+            count+=1
+            if count==10:
+                break
+        pass
+
+
+
     '''主函数'''
     def load_data(self):
         '''
@@ -116,7 +133,7 @@ class DealData:
 
 
         return train_df,test_df,idx_train,idx_train_y,idx_test,idx_test_y
-# DealData().load_data()
+DealData().index_to_word()
 
 
 
