@@ -146,6 +146,7 @@ class DealData:
 
         with open(self.config['vocab_path'], "r", encoding="utf-8") as f:
             vocab=json.load(f)
+            print('词典大小：',len(vocab))
 
         # 4 划分数据集
         df = df.sample(frac=1)
@@ -163,7 +164,7 @@ class DealData:
         # print(idx_test_y[:3],len(idx_test_y[0]))
 
         return train_df,test_df,idx_train,idx_train_y,idx_test,idx_test_y
-# DealData().load_data()
+DealData().load_data()
 
 
 
