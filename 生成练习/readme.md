@@ -84,3 +84,8 @@ decoder训练和测试，输入的mask问题？
 rouge多少算好
 blue值多少算好
 模型初始化问题
+
+encoder-decoder训练需要加上S,E,在每句话的输入和输出，为了在预测的时候，decoder
+input的第一个位置就是S,
+所以给decoder的vocab+'S'和'E'
+

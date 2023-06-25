@@ -28,8 +28,9 @@ cur_path = os.path.dirname(__file__)
 data_config={
     # 'num_classes':10,
     'vocab_path':os.path.join(cur_path,"model/vocab.txt"),
-    'enc_vocab_size': 80447,
-    'dec_vocab_size': 80447,
+    'idx2word_dict':os.path.join(cur_path,"model/idx2word.txt"),
+    'enc_vocab_size': 4916,
+    'dec_vocab_size': 4916,
     'enc_len':64,
     'stopword_path':os.path.join(cur_path,"model/stop_word.txt"),
     'dec_len':16

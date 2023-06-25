@@ -31,17 +31,9 @@ class DealData:
         res=[]
         for i in corpus:
             res.append([word for word in jieba.cut(i) if word not in self.stopwords and len(word)>1])
+
         return res
 
-    '''统一句子长度'''
-    def pad_len(self,sentences,seq_len):
-        res=[]
-        for sen in sentences:
-            if len(sen)<seq_len:
-                sen=sen+[0]*(seq_len-len(sen))
-            else:sen=sen[:seq_len]
-            res.append(sen)
-        return res
 
 
     '''训练数据词典'''
@@ -64,6 +56,9 @@ class DealData:
         # 添加 "pad"index=0 和 "UNK"index=1
         words.insert(0, 'UNK')
         words.insert(0, 'PAD')
+        # 给decoder加开头结尾标识
+        words.insert(len(words), 'S')
+        words.insert(len(words), 'E')
         word2idx = dict(zip(words, list(range(len(words)))))
 
         # 将词汇-索引映射表保存为json数据，之后做inference时直接加载来处理数据
@@ -71,30 +66,60 @@ class DealData:
             json.dump(word2idx, f)
         return word2idx
 
+    '''统一句子长度'''
+
+    # def pad_len(self, sentences, seq_len):
+    #     res = []
+    #     for sen in sentences:
+    #         if len(sen) < seq_len:
+    #             sen = sen + [0] * (seq_len - len(sen))
+    #         else:
+    #             sen = sen[:seq_len]
+    #         res.append(sen)
+    #     return res
+
     '''word2id'''
-    def word_to_index(self, sentence, word2idx,seq_len):
+    def word_to_index(self, sentence, word2idx,seq_len,type='x'):
         """
         将词转换成索引
         """
-        sentence_index = [[word2idx.get(item, word2idx["UNK"]) for item in sent] for sent in sentence]
-        sentence_index=self.pad_len(sentence_index,seq_len)
+        sentence_index = []
+        if type=='y':
+            for sent in sentence:
+                # decoder 句子加上'S'和'E'
+                idx=[word2idx['S']]
+                for item in sent:
+                    idx.append(word2idx.get(item, word2idx["UNK"]))
 
+                if len(idx)<seq_len-1:
+                    idx = idx + [0] * (seq_len-1 - len(idx))
+                else:
+                    idx = idx[:seq_len-1]
+
+                idx.append(word2idx['E'])
+                sentence_index.append(idx)
+
+        else:
+            for sent in sentence:
+                idx = [word2idx.get( item, word2idx["UNK"]) for item in sent]
+                if len(idx) < seq_len :
+                    idx = idx + [0] * (seq_len - len(idx))
+                else:
+                    idx = idx[:seq_len]
+                sentence_index.append(idx)
+
+        # sentence_index = [[word2idx.get(item, word2idx["UNK"]) for item in sent] for sent in sentence]
+        # sentence_index=self.pad_len(sentence_index,seq_len)
         return sentence_index
 
     '''idx2word'''
-    def index_to_word(self,sentences):
-        # 待完成
-        # sentences:[[1,09,32,41,]]
-        # 在评估数据时使用
-        with open(self.config['vocab_path'], "r", encoding="utf-8") as f:
-            vocab = json.load(f)#{ '指挥员': 79169, '一字排开': 79170}
-        count=0
-        for k,v in vocab:
-            print(k,v)
-            count+=1
-            if count==10:
-                break
-        pass
+    def index_to_word(self,word2idx):
+        # idx2word保存
+        id2w = {}
+        for k, v in word2idx.items():
+            id2w[v] = k
+        with open(data_config['idx2word_dict'], "w", encoding="utf-8") as f2:
+            json.dump(id2w, f2)
 
 
 
@@ -108,6 +133,7 @@ class DealData:
         filename=os.path.join(self.cur_path,'data/train.jsonl')
         f = open(filename, 'r+', encoding='utf-8').readlines()
         df = pd.DataFrame(json.loads(line) for line in f)
+        # df['summary']=df['summary'].map(lambda x:'S'+str(x)+'E')
         #['id', 'text', 'url', 'summary']
 
         # 2 分词(encoder与decoder用一套词典)
@@ -115,7 +141,8 @@ class DealData:
 
         # 3 建立词典，只有训练数据需要
         if not os.path.exists(self.config['vocab_path']):
-            self.Vocabulary(sentences)
+            word2idx=self.Vocabulary(sentences)
+            self.index_to_word(word2idx)
 
         with open(self.config['vocab_path'], "r", encoding="utf-8") as f:
             vocab=json.load(f)
@@ -127,13 +154,16 @@ class DealData:
 
         # 5 将词转换成idx
         idx_train = self.word_to_index(self.cut_word(train_df['text'].to_list()), vocab,seq_len=self.config['enc_len'])
-        idx_train_y = self.word_to_index(self.cut_word(train_df['summary'].to_list()), vocab,seq_len=self.config['dec_len'])
+        idx_train_y = self.word_to_index(self.cut_word(train_df['summary'].to_list()), vocab,seq_len=self.config['dec_len'],type='y')
         idx_test = self.word_to_index(self.cut_word(test_df['text'].to_list()), vocab,seq_len=self.config['enc_len'])
-        idx_test_y = self.word_to_index(self.cut_word(test_df['summary'].to_list()), vocab,seq_len=self.config['dec_len'])
-
+        idx_test_y = self.word_to_index(self.cut_word(test_df['summary'].to_list()), vocab,seq_len=self.config['dec_len'],type='y')
+        # print(idx_train[:3],len(idx_train[0]))
+        # print(idx_train_y[:3],len(idx_train_y[0]))
+        # print(idx_test[:3],len(idx_test[0]))
+        # print(idx_test_y[:3],len(idx_test_y[0]))
 
         return train_df,test_df,idx_train,idx_train_y,idx_test,idx_test_y
-# DealData().index_to_word()
+# DealData().load_data()
 
 
 

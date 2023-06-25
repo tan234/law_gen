@@ -11,15 +11,24 @@ from nltk.translate.bleu_score import sentence_bleu
 from rouge  import Rouge
 
 import jieba
-batch=2
-input_len=5
-encoder_input=torch.zeros(batch,input_len)
-tgt_l=6
-a=torch.zeros(1,tgt_l)
-print(a)
-print(encoder_input)
+import json
+from config import *
+with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
+    vocab = json.load(f)
+print(len(vocab))
+print(vocab)
+# print(vocab['S'])
+print(vocab['E'])
 
-print((encoder_input.data))
+# batch=2
+# input_len=5
+# encoder_input=torch.zeros(batch,input_len)
+# tgt_l=6
+# a=torch.zeros(1,tgt_l)
+# print(a)
+# print(encoder_input)
+#
+# print((encoder_input.data))
 # y_hat=y_hat.view(-1,y_hat.size()[-1])#[batch_size*tgt_len, tgt_vocab_size]
 # y=y.view(-1)#真实值平铺 batch_size*tgt_len
 

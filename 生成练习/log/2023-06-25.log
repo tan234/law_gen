@@ -1,0 +1,12 @@
+2023-06-25 15:46:47,331 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:107] - INFO: training start  
+2023-06-25 16:22:28,497 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:107] - INFO: training start  
+2023-06-25 16:22:42,367 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:156] - INFO: epoch 1, loss 10.6567, train_rouge 0.000, test acc 0.001, time 13.9 sec
+2023-06-25 16:22:42,973 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:166] - INFO: current testacc is 0.0011,best acc is 0.0011
+2023-06-25 16:22:56,280 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:156] - INFO: epoch 2, loss 8.7250, train_rouge 0.002, test acc 0.000, time 13.3 sec
+2023-06-25 16:22:56,280 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:166] - INFO: current testacc is 0.0002,best acc is 0.0011
+2023-06-25 18:23:19,012 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:107] - INFO: training start  
+2023-06-25 18:23:25,293 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:156] - INFO: epoch 1, loss 8.0076, train_rouge 0.001, test acc 0.001, time 6.3 sec
+2023-06-25 18:23:25,381 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:166] - INFO: current testacc is 0.0011,best acc is 0.0011
+2023-06-25 18:23:31,621 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:156] - INFO: epoch 2, loss 7.5729, train_rouge 0.002, test acc 0.001, time 6.2 sec
+2023-06-25 18:23:31,621 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:166] - INFO: current testacc is 0.0008,best acc is 0.0011
+2023-06-25 18:23:54,344 - /Users/tanzijun/Documents/law_git/law_gen/生成练习/train.py[line:107] - INFO: training start  
