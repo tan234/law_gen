@@ -126,14 +126,14 @@ class DealData:
         test_df = df[int(len(df) * .7):]
 
         # 5 将词转换成idx
-        idx_train = self.word_to_index(self.cut_word(train_df['text'].to_list()), vocab,seq_len=self.config['encoder_len'])
-        idx_train_y = self.word_to_index(self.cut_word(train_df['summary'].to_list()), vocab,seq_len=self.config['decoder_len'])
-        idx_test = self.word_to_index(self.cut_word(test_df['text'].to_list()), vocab,seq_len=self.config['encoder_len'])
-        idx_test_y = self.word_to_index(self.cut_word(test_df['summary'].to_list()), vocab,seq_len=self.config['decoder_len'])
+        idx_train = self.word_to_index(self.cut_word(train_df['text'].to_list()), vocab,seq_len=self.config['enc_len'])
+        idx_train_y = self.word_to_index(self.cut_word(train_df['summary'].to_list()), vocab,seq_len=self.config['dec_len'])
+        idx_test = self.word_to_index(self.cut_word(test_df['text'].to_list()), vocab,seq_len=self.config['enc_len'])
+        idx_test_y = self.word_to_index(self.cut_word(test_df['summary'].to_list()), vocab,seq_len=self.config['dec_len'])
 
 
         return train_df,test_df,idx_train,idx_train_y,idx_test,idx_test_y
-DealData().index_to_word()
+# DealData().index_to_word()
 
 
 

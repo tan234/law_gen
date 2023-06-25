@@ -73,7 +73,7 @@ class Encoder(nn.Module):
         # 计算得到encoder-attention的pad martix,因为是maskpad 所以对没有embedding的数据进行操作？
         enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)# enc_self_attn: [batch_size, seq_k, seq_q]
 
-        # enc_self_attns = []# 创建一个列表，保存接下来要返回的字-字attention的值，不参与任何计算，供可视化用
+        enc_self_attns = []# 创建一个列表，保存接下来要返回的字-字attention的值，不参与任何计算，供可视化用
 
         # 循环每个encoder
         for layer in self.layers:
@@ -83,9 +83,9 @@ class Encoder(nn.Module):
             enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
             # enc_outputs: [batch_size, seq_len, emb]
             # 记录下每一次的attention
-            # enc_self_attns.append(enc_self_attn)
+            enc_self_attns.append(enc_self_attn)
 
-        return enc_outputs
+        return enc_outputs,enc_self_attns
         # 只用encoder分类时，接入一个linear变成batch,num
         # return nn.Linear(config['emb_size']*config['seq_len'],config['num_classes'])(enc_outputs.view(config['batch_size'], -1))
 
@@ -353,7 +353,7 @@ class Decoder(nn.Module):
 
 
 
-        # dec_self_attns, dec_enc_attns = [], []
+        dec_self_attns, dec_enc_attns = [], []
         # decoder的两个attention模块
 
         for layer in self.layers:
@@ -364,10 +364,10 @@ class Decoder(nn.Module):
             dec_outputs, dec_self_attn, dec_enc_attn = \
                 layer(dec_outputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask)
 
-            # dec_self_attns.append(dec_self_attn)
-            # dec_enc_attns.append(dec_enc_attn)
+            dec_self_attns.append(dec_self_attn)
+            dec_enc_attns.append(dec_enc_attn)
         # [batch_size, tgt_len, d_model]
-        return dec_outputs
+        return dec_outputs,dec_self_attns,dec_enc_attns
 
 
 def get_attn_subsequence_mask(seq):
@@ -472,13 +472,13 @@ class Transformer(nn.Module):
         dec_inputs: [batch_size, tgt_len]
         '''
 
-        enc_outputs = self.encoder(enc_inputs) # enc_outputs: [batch_size, src_len, emb_size]
+        enc_outputs,enc_self_attns = self.encoder(enc_inputs) # enc_outputs: [batch_size, src_len, emb_size]
         # enc_self_attns: [n_layers, batch_size, n_heads, src_len, src_len]
         # 注意力矩阵，对encoder和decoder，每一层，每一句话，每一个头，每两个字之间都有一个权重系数，
         # 这些权重系数组成了注意力矩阵
         # 之后的dec_self_attns同理，当然decoder还有一个decoder-encoder的注意力矩阵
 
-        dec_outputs = self.decoder(dec_inputs, enc_inputs, enc_outputs)
+        dec_outputs,dec_self_attns, dec_enc_attns  = self.decoder(dec_inputs, enc_inputs, enc_outputs)
         # dec_outpus: [batch_size, tgt_len, d_model],
         # dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len],
         # dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
@@ -486,17 +486,16 @@ class Transformer(nn.Module):
         dec_logits = self.projection(dec_outputs)# dec_logits: [batch_size, tgt_len, tgt_vocab_size]
         # dec_logits.view(-1, dec_logits.size(-1))
 
-        return dec_logits
+        return dec_logits,enc_self_attns,dec_self_attns,dec_enc_attns
 
-
-
-# batch=32
-# encode_seq=64
-# dec_seq=16
-#
-# enc_input=torch.tensor([random.randint(0,1000) for i in range(batch*encode_seq)], dtype=torch.long).reshape(batch,encode_seq)
-# dec_input=torch.tensor([random.randint(0,1000) for _ in range(batch*dec_seq)], dtype=torch.long).reshape(batch,dec_seq)
 #
 #
-# y=Transformer().forward(enc_input, dec_input)
-# print(y,y.size())
+# if __name__=="__main__":
+#     from config import *
+#
+#     enc_input=torch.tensor([random.randint(0,1000) for i in range(train_config['batch_size']*data_config['enc_len'])], dtype=torch.long).reshape(train_config['batch_size'],data_config['enc_len'])
+#     dec_input=torch.tensor([random.randint(0,1000) for _ in range(train_config['batch_size']*data_config['dec_len'])], dtype=torch.long).reshape(train_config['batch_size'],data_config['dec_len'])
+#     #
+#     #
+#     y=Transformer().forward(enc_input, dec_input)
+#     print(y,y.size())

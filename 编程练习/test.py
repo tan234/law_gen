@@ -23,21 +23,20 @@ import torch
 import random
 import math
 
-def a(s1,s2):
-    # 最长公共子序列
+def a(x,p):
+    # 实现dropout
+    n=int(p*len(x))
+    drop=[0]*n+[1]*(len(x)-n)
+    random.shuffle(drop)
 
-    dp=[[0]*(len(s2)+1)for _ in range(len(s1)+1)]
+    res=[i*j for i,j in zip(x,drop)]
+    return res
 
-    for i in range(1,len(s1)+1):
-        for j in range(1,len(s2)+1):
-            if s1[i-1]==s2[j-1]:
 
-                dp[i][j]=dp[i-1][j-1]+1
-            else:
-                dp[i][j]=max(dp[i-1][j],dp[i][j-1])
-    return dp[-1][-1]
+print(a([1,0,9,-8],0.5))
 
-print(a('abfiwxava','dajaovs'))
+
+
 class al:
     def dropout_15(self, x, p=.5):
         '''实现dropout'''

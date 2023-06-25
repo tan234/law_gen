@@ -49,8 +49,8 @@ class train_model:
         batch_size = train_config['batch_size']
 
 
-        dev_pred_path=os.path.join(cur_dir,'model/dev_pred.xlsx')
-        text_pred_path=os.path.join(cur_dir,'model/text_pred.xlsx')
+        # dev_pred_path=os.path.join(cur_dir,'model/dev_pred.xlsx')
+        # text_pred_path=os.path.join(cur_dir,'model/text_pred.xlsx')
 
 
         '''batch 数据'''
@@ -80,8 +80,8 @@ class train_model:
 
         # 摘要预测待处理
         '''用训练好的模型预测'''
-        self.loger.logger.info('-------------预测测试集----------')
-        self.pred_save(model, test_loader, device, test_df, text_pred_path)
+        # self.loger.logger.info('-------------预测测试集----------')
+        # self.pred_save(model, test_loader, device, test_df, text_pred_path)
 
 
     '''保存模型在验证集上的结果'''
@@ -122,7 +122,7 @@ class train_model:
                 y = Y.to(device)
                 # t1=time.time()
                 n += y.shape[0]
-                y_hat = model.forward(X, y) # [batch_size, tgt_len, tgt_vocab_size]
+                y_hat,_,_,_, = model.forward(X, y) # [batch_size, tgt_len, tgt_vocab_size]
 
                 y_hat=y_hat.view(-1,y_hat.size()[-1])#[batch_size*tgt_len, tgt_vocab_size]
                 y=y.view(-1)#真实值平铺 batch_size*tgt_len
@@ -135,16 +135,21 @@ class train_model:
                 optimizer.step()  # 更新参数
 
                 # 模型评估指标计算
-                y = ' '.join([str(i) for i in y])
+                y = ' '.join([str(i) for i in y.tolist()])
                 y_hat = y_hat.argmax(dim=1)
                 y_hat = ' '.join([str(i) for i in y_hat.tolist()])
+
                 train_rouge+=self.rouge_value(y,y_hat)
 
                 train_loss_sum += l.cpu().item()
                 batch_count += 1
-
+                # print(y)
+                # print(y_hat)
+                # print(train_rouge)
 
             dev_acc = self.dev_evaluate(dev_loader, model)
+            # print(dev_acc)
+            # kk
             print('epoch %d, loss %.4f, train_rouge %.3f, test acc %.3f, time %.1f sec'
                   % (epoch + 1, train_loss_sum / batch_count, train_rouge / n, dev_acc, time.time() - start))
             self.loger.logger.info('epoch %d, loss %.4f, train_rouge %.3f, test acc %.3f, time %.1f sec'
@@ -162,7 +167,7 @@ class train_model:
             print("current testacc is {:.4f},best acc is {:.4f}".format(dev_acc, best_acc))
 
 
-        self.train_plt(np.arange(1,epochs+1,1),train_loss,train_acc,devacc_list)
+        # self.train_plt(np.arange(1,epochs+1,1),train_loss,train_acc,devacc_list)
 
     def bleu_value(self):
         reference = [
@@ -231,10 +236,10 @@ class train_model:
                 net.eval()  # 评估模式, 会关闭dropout
 
                 n += y.shape[0]
-                y_hat = net.forward(X, y)  # [batch_size, tgt_len, tgt_vocab_size]
+                y_hat,_,_,_, = net.forward(X, y)  # [batch_size, tgt_len, tgt_vocab_size]
 
                 # 模型评估指标计算
-                y = ' '.join([str(i) for i in y.view(-1)])# 真实值平铺 batch_size*tgt_len
+                y = ' '.join([str(i) for i in y.view(-1).tolist()])# 真实值平铺 batch_size*tgt_len
                 y_hat = y_hat.view(-1, y_hat.size()[-1])  # [batch_size*tgt_len, tgt_vocab_size]
                 y_hat = ' '.join([str(i) for i in y_hat.argmax(dim=1).tolist()])
                 train_rouge += self.rouge_value(y, y_hat)

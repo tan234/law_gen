@@ -28,8 +28,8 @@ cur_path = os.path.dirname(__file__)
 data_config={
     # 'num_classes':10,
     'vocab_path':os.path.join(cur_path,"model/vocab.txt"),
-    'enc_vocab_size': 56850,
-    'dec_vocab_size': 56850,
+    'enc_vocab_size': 80447,
+    'dec_vocab_size': 80447,
     'enc_len':64,
     'stopword_path':os.path.join(cur_path,"model/stop_word.txt"),
     'dec_len':16
@@ -66,7 +66,7 @@ transformer_config={
     'd_v': 64,  # dimension of K(=Q), V
     'n_layers': 2,# encoder和decoder各有多少层
     'n_heads':  8,# multi-head attention有几个头
-    'transformer_model_path':'result/transformer_model.pth',
+    'transformer_model_path':'model/transformer_model.pth',
     'enc_layers':2,
     'dec_layers':2,
     'tgt_emb':512,

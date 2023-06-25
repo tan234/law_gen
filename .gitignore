@@ -1,0 +1,3 @@
+## 在.gitignore写上：
+生成练习/model/transformer_model.pth
+
