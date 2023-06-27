@@ -11,6 +11,7 @@ import numpy as np
 import json
 from collections import Counter
 from config import *
+from jieba import posseg as psg
 class DealData:
     '''
     管理从数据处理到模型能用的整个过程
@@ -30,7 +31,7 @@ class DealData:
     def cut_word(self,corpus):
         res=[]
         for i in corpus:
-            res.append([word for word in jieba.cut(i) if word not in self.stopwords and len(word)>1])
+            res.append([word for word,p in psg.cut(i) if word not in self.stopwords and len(word)>1 and p not in ['m']])
 
         return res
 
@@ -135,10 +136,19 @@ class DealData:
         df = pd.DataFrame(json.loads(line) for line in f)
         # df['summary']=df['summary'].map(lambda x:'S'+str(x)+'E')
         #['id', 'text', 'url', 'summary']
+        print(df)
 
         # 2 分词(encoder与decoder用一套词典)
         sentences = self.cut_word(df['text'].to_list()+df['summary'].to_list())
-
+        df['t']=self.cut_word(df['text'].to_list())
+        df['s']=self.cut_word(df['summary'].to_list())
+        df['tl']=df['t'].map(lambda x:len(x))
+        df['sl']=df['s'].map(lambda x:len(x))
+        df.to_excel('cut_word.xlsx',index=False)
+        print(df.describe())
+        print(df['tl'].describe())
+        print(df['sl'].describe())
+        kk
         # 3 建立词典，只有训练数据需要
         if not os.path.exists(self.config['vocab_path']):
             word2idx=self.Vocabulary(sentences)

@@ -23,17 +23,20 @@ import torch
 import random
 import math
 
-def a(x,p):
-    # 实现dropout
-    n=int(p*len(x))
-    drop=[0]*n+[1]*(len(x)-n)
-    random.shuffle(drop)
+def a(s):
+    # 最长不重复子串
+    max_=0
+    res=[]
 
-    res=[i*j for i,j in zip(x,drop)]
-    return res
+    for i in range(len(s)):
+        if s[i]  in res:
+            idx=res.index(s[i])
+            res=res[idx+1:] if idx+1<len(res) else []
+        res.append(s[i])
+        max_=max(max_,len(res))
+    return max_
 
-
-print(a([1,0,9,-8],0.5))
+print(a('adfaw2'))
 
 
 
@@ -88,7 +91,6 @@ class al:
         问总共有多少条不同的路径？
         '''
         dp = [[0] * n for i in range(m)]
-        dp[0][0] = 1
         for i in range(m):
             dp[i][0] = 1
         for j in range(n):
@@ -100,6 +102,8 @@ class al:
 
         return dp[-1][-1]
 
+
+    # print(a(3, 7))
     # print(uniquePaths(3, 3))
 
     def maxProduct_11(self,nums) -> int:
