@@ -1,5 +1,4 @@
-
-
+import pandas as pd
 import torch
 import torch.nn as nn
 import numpy as np
@@ -13,12 +12,21 @@ from rouge  import Rouge
 import jieba
 import json
 from config import *
-with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
-    vocab = json.load(f)
-print(len(vocab))
-print(vocab)
-# print(vocab['S'])
-print(vocab['E'])
+
+df=pd.read_excel('cut_word.xlsx')
+print(df)
+print(df.columns)
+df['sl']=df['t'].map(lambda x:len(x.split(', ')))
+print(df['sl'])
+
+print(df['sl'].describe())
+
+# with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
+#     vocab = json.load(f)
+# print(len(vocab))
+# print(vocab)
+# # print(vocab['S'])
+# print(vocab['E'])
 
 # batch=2
 # input_len=5

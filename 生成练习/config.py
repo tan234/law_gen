@@ -6,11 +6,11 @@ data_config={
     # 'num_classes':10,
     'vocab_path':os.path.join(cur_path,"model/vocab.txt"),
     'idx2word_dict':os.path.join(cur_path,"model/idx2word.txt"),
-    'enc_vocab_size': 83631,
-    'dec_vocab_size': 83631,
-    'enc_len':64,
+    'enc_vocab_size': 70277,
+    'dec_vocab_size': 70277,
+    'enc_len':500,
     'stopword_path':os.path.join(cur_path,"model/stop_word.txt"),
-    'dec_len':16
+    'dec_len':48
 }
 
 train_config={
