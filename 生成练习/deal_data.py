@@ -140,15 +140,12 @@ class DealData:
 
         # 2 分词(encoder与decoder用一套词典)
         sentences = self.cut_word(df['text'].to_list()+df['summary'].to_list())
-        df['t']=self.cut_word(df['text'].to_list())
-        df['s']=self.cut_word(df['summary'].to_list())
-        df['tl']=df['t'].map(lambda x:len(x))
-        df['sl']=df['s'].map(lambda x:len(x))
-        df.to_excel('cut_word.xlsx',index=False)
-        print(df.describe())
-        print(df['tl'].describe())
-        print(df['sl'].describe())
-        kk
+        # df['t']=self.cut_word(df['text'].to_list())
+        # df['s']=self.cut_word(df['summary'].to_list())
+        # df['tl']=df['t'].map(lambda x:len(x))
+        # df['sl']=df['s'].map(lambda x:len(x))
+        # df.to_excel('cut_word.xlsx',index=False)
+
         # 3 建立词典，只有训练数据需要
         if not os.path.exists(self.config['vocab_path']):
             word2idx=self.Vocabulary(sentences)
