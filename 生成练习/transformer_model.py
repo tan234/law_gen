@@ -11,32 +11,6 @@ import torch.utils.data as Data
 from config import *
 #超参
 
-# heads = 6
-# max_decoding_len = 21
-# max_pos_len = 5000
-# learning_rate=1e-3
-# epochs = 10
-# fc_dim = 512
-# dropout_rate=0.1
-# attention_dropout_rate=0.1
-# encoder_layers = 1
-# decoder_layers = 1
-
-# config={
-#     'vocab_size':5000,#encoder vocab
-#     'emb_size':128,
-#     'seq_len':64,
-#     'encoder_layers':2,
-#     'decoder_layers':2,
-#     'n_heads':6,
-#     'd_k':64,
-#     'd_v':64,
-#     'd_ff':128,
-#     'tgt_vocab_size':5000,
-#     'tgt_len':16,
-#     'tgt_emb':128,
-#
-# }
 #------encoder-----------------------------------------
 class Encoder(nn.Module):
     '''

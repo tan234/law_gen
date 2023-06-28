@@ -89,3 +89,46 @@ encoder-decoder训练需要加上S,E,在每句话的输入和输出，为了在�
 input的第一个位置就是S,
 所以给decoder的vocab+'S'和'E'
 
+transformer 模型
+总输入：enc_input,dec_input
+
+一 encoder block
+1 输入：enc_input[batch,enc_seq]
+2 word_emb:得到[batch,enc_seq,enc_emb],现在是随机生成；后续可以用大模型训练好的词向量代替来做初始化
+3 position_emb:sin,cos的方式，输入为[seq，emb],因为都是每个batch对应的位置值固定，所以不需要用batch;后续可以改为相对位置编码
+4 enc_outputs=word_emb+pos_emb[batch,enc_seq,enc_emb]
+5 dropout(enc_outputs)
+6 enc_pad_mask:输入[enc_input,enc_input],PAD位置为True
+7 self_attention:输入[enc_outputs(上面的5),enc_pad_mask]，矩阵计算：softmax((q,k)/dk+M)*V;可以考虑数学方法加快矩阵计算
+8 add_norm
+9 FFN:f(XW+b)W+b;激活函数改成了GELU
+10 add_norm
+11 输出：[batch_size, enc_seq, emb_size]
+
+二 decoder block
+1 输入：decoder_input[batch_size, dec_len]
+2 word_emb:变成[batch_size, dec_len,dec_emb_size]
+3 pos_emb:同encoder
+4 decoder=dropout(word_emb+pos_emb)
+5 decoder attention mask:
+decoder_attention_mask:pad mask + dec_seq_mask:(mask上三角，看不到未来的decoder)
+6 enc_dec_att_mask:
+decoder-encoder-mask:pad mask，mask的是encoder的pad
+7 decoder attention层：输入 (decoder[batch_size, dec_len,dec_emb_size]，decoder_mask[dec_input,dec_inp])
+8 addnorm
+9 decoder encoder attention层：输入(decoder-ouput,encoder-output,enc_dec_mask)
+10 addnorm
+11 FFN+addnorm
+12 输出：[batch_size, dec_len, dec_emb_size]
+
+三 全连接
+decoder 输出的结果，经过全连接层得到：[batch_size, tgt_len, tgt_vocab_size]
+也就是每一条数据，decoder每一步的预测值
+
+四 共同部分
+1 pad_mask：分为三种(encoder PAD在encoder的self-attention 层用；decoder PAD 在decoder层用；en-de mask 在encoder-decoderattention层使用)
+2 pos_emb:encoder和decoder都是用的cos
+3 attention:attention 三个矩阵的计算+add_norm
+4 FFN+addnorm
+五 其他
+整个过程的参数量？

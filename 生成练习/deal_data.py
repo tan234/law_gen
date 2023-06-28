@@ -136,7 +136,7 @@ class DealData:
         df = pd.DataFrame(json.loads(line) for line in f)
         # df['summary']=df['summary'].map(lambda x:'S'+str(x)+'E')
         #['id', 'text', 'url', 'summary']
-        print(df)
+        # print(df)
 
         # 2 分词(encoder与decoder用一套词典)
         sentences = self.cut_word(df['text'].to_list()+df['summary'].to_list())
