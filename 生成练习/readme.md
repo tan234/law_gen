@@ -132,3 +132,5 @@ decoder 输出的结果，经过全连接层得到：[batch_size, tgt_len, tgt_v
 4 FFN+addnorm
 五 其他
 整个过程的参数量？
+
+问题：预测时输出的都是'S'

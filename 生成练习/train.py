@@ -79,7 +79,7 @@ class train_model:
         self.train_data(train_config['epochs'],model, train_loader, device, optimizer, test_loader,loss)
 
         # 摘要预测待处理
-        '''用训练好的模型预测'''
+        # '''用训练好的模型预测'''
         # self.loger.logger.info('-------------预测测试集----------')
         # self.pred_save(model, test_loader, device, test_df, text_pred_path)
 
@@ -96,9 +96,6 @@ class train_model:
         print(classification_report(data_df[1].to_list(), data_df['pred'].to_list()))
         data_df.to_excel(save_path,index=False)
 
-    def idxtoword(self):
-
-        pass
     '''训练数据 保存最优模型'''
     def train_data(self,epochs,model,train_loader,device,optimizer,dev_loader,loss):
 
@@ -204,26 +201,32 @@ class train_model:
         plt.show()
 
     '''模型预测数据'''
-    def model_pred(self, model, data_loader,device):
-
-        # 加载模型
-        m_state_dict = torch.load(self.model_path)
-        model = model.to(device)
-        model.load_state_dict(m_state_dict)
-
-        # 预测数据
-        pred_list = []
-        # target_list = []
-        for batch_idx, (data, target) in enumerate(tqdm(data_loader)):
-            data = data.to(device)
-            # target = target.long().to(device)
-            output = model(data)  # torch.Tensor([[1.1537,  0.2496]])
-            try:
-                output = torch.argmax(output, 1).numpy().tolist()  # 选最大值对应的索引 0，转为list
-            except TypeError:
-                output = torch.argmax(output, 1).cpu().numpy().tolist()
-            pred_list.extend(output)
-        return pred_list
+    # def model_pred(self, model, data_loader,device):
+    #
+    #     # 加载模型
+    #     # m_state_dict = torch.load(self.model_path)
+    #     # model = model.to(device)
+    #     # model.load_state_dict(m_state_dict)
+    #
+    #     # 预测数据
+    #     pred_list = []
+    #     # target_list = []
+    #     for batch_idx, (data, target) in enumerate(tqdm(data_loader)):
+    #         data = data.to(device)
+    #         # target = target.long().to(device)
+    #         output,_,_,_ = model.forward(data,target)  # torch.Tensor([[1.1537,  0.2496]])
+    #
+    #         y = ' '.join([str(i) for i in y.view(-1).tolist()])  # 真实值平铺 batch_size*tgt_len
+    #         y_hat = y_hat.view(-1, y_hat.size()[-1])  # [batch_size*tgt_len, tgt_vocab_size]
+    #         y_hat = ' '.join([str(i) for i in y_hat.argmax(dim=1).tolist()])
+    #         train_rouge += self.rouge_value(y, y_hat)
+    #
+    #         # try:
+    #         #     output = torch.argmax(output, 1).numpy().tolist()  # 选最大值对应的索引 0，转为list
+    #         # except TypeError:
+    #         #     output = torch.argmax(output, 1).cpu().numpy().tolist()
+    #         # pred_list.extend(output)
+    #     return pred_list
 
 
     '''验证集评估'''
@@ -242,6 +245,7 @@ class train_model:
                 y = ' '.join([str(i) for i in y.view(-1).tolist()])# 真实值平铺 batch_size*tgt_len
                 y_hat = y_hat.view(-1, y_hat.size()[-1])  # [batch_size*tgt_len, tgt_vocab_size]
                 y_hat = ' '.join([str(i) for i in y_hat.argmax(dim=1).tolist()])
+                # print(y_hat)
                 train_rouge += self.rouge_value(y, y_hat)
 
                 net.train()  # 改回训练模式

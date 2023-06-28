@@ -119,6 +119,7 @@ class ScaledDotProductAttention(nn.Module):
         attn_mask: [batch_size, n_heads, seq_q, seq_k]
         '''
 
+
         scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(transformer_config['d_k']) # scores : [batch_size, n_heads, len_q, len_k]
 
         scores.masked_fill_(attn_mask, -1e9)
@@ -306,6 +307,8 @@ class Decoder(nn.Module):
         enc_outputs: [batsh_size, seq_len, emb] 经过六次encoder之后得到的东西
         '''
         # X-emb
+        # print(dec_inputs.size())
+
         dec_outputs = self.tgt_emb(dec_inputs)# [batch_size, tgt_len, tgt_emb]
 
         #Xemb+pos_emb
@@ -464,12 +467,12 @@ class Transformer(nn.Module):
 
 #
 #
-# if __name__=="__main__":
-#     from config import *
-#
-#     enc_input=torch.tensor([random.randint(0,1000) for i in range(train_config['batch_size']*data_config['enc_len'])], dtype=torch.long).reshape(train_config['batch_size'],data_config['enc_len'])
-#     dec_input=torch.tensor([random.randint(0,1000) for _ in range(train_config['batch_size']*data_config['dec_len'])], dtype=torch.long).reshape(train_config['batch_size'],data_config['dec_len'])
-#     #
-#     #
-#     y=Transformer().forward(enc_input, dec_input)
-#     print(y,y.size())
+if __name__=="__main__":
+    from config import *
+
+    enc_input=torch.tensor([random.randint(0,1000) for i in range(train_config['batch_size']*data_config['enc_len'])], dtype=torch.long).reshape(train_config['batch_size'],data_config['enc_len'])
+    dec_input=torch.tensor([random.randint(0,1000) for _ in range(train_config['batch_size']*data_config['dec_len'])], dtype=torch.long).reshape(train_config['batch_size'],data_config['dec_len'])
+    #
+    #
+    y=Transformer().forward(enc_input, dec_input)
+    # print(y,y.size())

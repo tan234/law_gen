@@ -11,7 +11,8 @@ import numpy as np
 import json
 from collections import Counter
 from config import *
-from jieba import posseg as psg
+# from jieba import posseg as psg
+
 class DealData:
     '''
     管理从数据处理到模型能用的整个过程
@@ -31,7 +32,8 @@ class DealData:
     def cut_word(self,corpus):
         res=[]
         for i in corpus:
-            res.append([word for word,p in psg.cut(i) if word not in self.stopwords and len(word)>1 and p not in ['m']])
+            # res.append([word for word,p in psg.cut(i) if word not in self.stopwords and len(word)>1 and p not in ['m']])
+            res.append([word for word in jieba.cut(i) ])
 
         return res
 
@@ -54,12 +56,13 @@ class DealData:
         # 去除低频词
         words = [item[0] for item in sortWordCount if item[1] >= 2]
 
+
+        # 给decoder加开头结尾标识
+        words.insert(0, 'SOS')
+        words.insert(0, 'SOE')
         # 添加 "pad"index=0 和 "UNK"index=1
         words.insert(0, 'UNK')
         words.insert(0, 'PAD')
-        # 给decoder加开头结尾标识
-        words.insert(len(words), 'S')
-        words.insert(len(words), 'E')
         word2idx = dict(zip(words, list(range(len(words)))))
 
         # 将词汇-索引映射表保存为json数据，之后做inference时直接加载来处理数据
@@ -131,7 +134,7 @@ class DealData:
         '''
 
         # 1 读数据
-        filename=os.path.join(self.cur_path,'data/train.jsonl')
+        filename=os.path.join(self.cur_path, 'data/train_y.jsonl')
         f = open(filename, 'r+', encoding='utf-8').readlines()
         df = pd.DataFrame(json.loads(line) for line in f)
         # df['summary']=df['summary'].map(lambda x:'S'+str(x)+'E')
@@ -140,11 +143,6 @@ class DealData:
 
         # 2 分词(encoder与decoder用一套词典)
         sentences = self.cut_word(df['text'].to_list()+df['summary'].to_list())
-        # df['t']=self.cut_word(df['text'].to_list())
-        # df['s']=self.cut_word(df['summary'].to_list())
-        # df['tl']=df['t'].map(lambda x:len(x))
-        # df['sl']=df['s'].map(lambda x:len(x))
-        # df.to_excel('cut_word.xlsx',index=False)
 
         # 3 建立词典，只有训练数据需要
         if not os.path.exists(self.config['vocab_path']):
@@ -153,6 +151,7 @@ class DealData:
 
         with open(self.config['vocab_path'], "r", encoding="utf-8") as f:
             vocab=json.load(f)
+            # print(vocab['S'])
             print('词典大小：',len(vocab))
 
         # 4 划分数据集
@@ -171,7 +170,7 @@ class DealData:
         # print(idx_test_y[:3],len(idx_test_y[0]))
 
         return train_df,test_df,idx_train,idx_train_y,idx_test,idx_test_y
-DealData().load_data()
+# DealData().load_data()
 
 
 
