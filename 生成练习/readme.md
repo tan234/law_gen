@@ -130,7 +130,13 @@ decoder 输出的结果，经过全连接层得到：[batch_size, tgt_len, tgt_v
 2 pos_emb:encoder和decoder都是用的cos
 3 attention:attention 三个矩阵的计算+add_norm
 4 FFN+addnorm
+
 五 其他
 整个过程的参数量？
 
-问题：预测时输出的都是'S'
+问题：预测时输出的都是'S'，不成句，完全不考虑输入的语义
+输入的序列可以考虑增加一个k的随机进行；或者加上一个语言模型，计算这个词和前一个词的语言模型概率。
+
+参考：https://aistudio.baidu.com/aistudio/projectdetail/4876808?channelType=0&channel=0
+https://www.bilibili.com/video/BV1mk4y1q7eK/?p=3
+https://wmathor.com/index.php/archives/1455/
