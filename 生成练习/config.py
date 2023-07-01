@@ -3,13 +3,13 @@ import os
 cur_path = os.path.dirname(__file__)
 
 data_config={
-    'vocab_path':os.path.join(cur_path,"model/vocab.txt"),
-    'idx2word_dict':os.path.join(cur_path,"model/idx2word.txt"),
-    'enc_vocab_size': 87919,
-    'dec_vocab_size': 87919,
-    'enc_len':500,
+    'vocab_path':os.path.join(cur_path, "model/vocab.txt"),
+    'idx2word_dict':os.path.join(cur_path, "model/idx2word.txt"),
+    'enc_vocab_size': 5152,
+    'dec_vocab_size': 5152,
+    'enc_len':1200,#500
     'stopword_path':os.path.join(cur_path,"model/stop_word.txt"),
-    'dec_len':48
+    'dec_len':200#48
 }
 
 train_config={

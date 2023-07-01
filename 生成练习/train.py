@@ -72,7 +72,7 @@ class train_model:
 
         '''模型训练 验证集调参'''
         optimizer = torch.optim.AdamW(model.parameters(), train_config['lr'])
-        loss = nn.CrossEntropyLoss()# 使用ignore_index参数：可以忽略某一项y的损失，一般用于labelPAD的情况。，还有一个weihgt参数，可以给label加权重
+        loss = nn.CrossEntropyLoss(ignore_index=0)# 使用ignore_index参数：可以忽略某一项y的损失，一般用于labelPAD的情况。，还有一个weihgt参数，可以给label加权重
 
 
 

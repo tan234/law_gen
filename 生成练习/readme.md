@@ -6,11 +6,6 @@
 
 模型评估：
 采用ROUGE(Recall-Oriented Understudy for Gisting Evaluation)评价。
-ROUGE指标将模型生成的摘要与参考摘要进行比较,
-其中ROUGE-1衡量unigram匹配情况，
-ROUGE-2衡量bigram匹配，
-ROUGE-L记录最长的公共子序列。
-三者都只采用f-score，
 总分计算方式为：0.2f-score(R1)+0.3f-score(R2)+0.5*f-score(RL)。
 
 2 transformer
@@ -136,7 +131,7 @@ decoder 输出的结果，经过全连接层得到：[batch_size, tgt_len, tgt_v
 
 问题：预测时输出的都是'S'，不成句，完全不考虑输入的语义
 输入的序列可以考虑增加一个k的随机进行；或者加上一个语言模型，计算这个词和前一个词的语言模型概率。
-
+直接用生成的模型？
 参考：https://aistudio.baidu.com/aistudio/projectdetail/4876808?channelType=0&channel=0
 https://www.bilibili.com/video/BV1mk4y1q7eK/?p=3
 https://wmathor.com/index.php/archives/1455/

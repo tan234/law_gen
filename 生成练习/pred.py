@@ -20,6 +20,9 @@ class Pred(object):
         # idx2word_dict
         with open(data_config['idx2word_dict'], "r", encoding="utf-8") as f2:
             self.idx2word = json.load(f2)
+
+        with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
+            self.vocab = json.load(f)
     '''读取训练好的模型'''
     def load_model(self):
         cur_dir = os.path.dirname(__file__)
@@ -45,31 +48,37 @@ class Pred(object):
         enc_outputs, enc_self_attns = model.encoder(enc_input)  # enc_outputs:1,seq,emb
 
         dec_input = torch.zeros(1, self.max_tgt_len).type_as(enc_input.data)  # 1,max_tag_len
+        # dec_input = torch.zeros(1, 0).type_as(enc_input.data)#空
         # S,
         next_symbol = start_symbol
+
         for i in range(0, self.max_tgt_len-1):
             dec_input[0][i] = next_symbol
+            # dec_input = torch.cat([dec_input.detach(), torch.tensor([[next_symbol]], dtype=enc_input.dtype)], -1)
+            # detach()不计算梯度,cat拼接类似于append，只是二维的 dec_input:[[a]]->[[a,b]]
 
             dec_outputs, _, _ = model.decoder(dec_input, enc_input, enc_outputs)
 
             projected = model.projection(dec_outputs)# projected： [batch_size, tgt_len, tgt_vocab_size]
 
             # y_hat = projected.squeeze(0).argmax(1)  # [tgt_len, tgt_vocab_size]
-            # 去掉 S
+
+            # ----去掉 S-----
             projected = projected.squeeze(0)
             a = projected.size()[0]
             b = projected.size()[1]
             new_projected = torch.zeros(a, b - 1)
             new_projected[:, :next_symbol] = projected[:, :next_symbol]
             new_projected[:, next_symbol:] = projected[:, next_symbol+1:]
-
             y_hat = new_projected.argmax(dim=1)  # tgt_len
-
-            # kk
             next_symbol = y_hat[i]
 
-            if self.idx2word[str(y_hat[i].item())] == 'E':
-                break
+
+            # y_hat = projected.squeeze(0).max(dim=-1, keepdim=False)[1]
+            # next_symbol = y_hat[i]
+
+            if self.idx2word[str(y_hat[i].item())] == 'SOE':
+                    break
 
         return dec_input
 
@@ -78,15 +87,16 @@ class Pred(object):
 
         # 1 对原文分词
         # tokens=[word for word, p in psg.cut(doc) if word not in self.stopwords and len(word) > 1 and p not in ['m']]
-        tokens=[word for word in jieba.cut(doc)]
+        # tokens=[word for word in jieba.cut(doc)]
+        tokens=[word for word in list(doc)]
+
 
         print(tokens)
 
         # 2 将字符转换成序号
-        with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
-            vocab = json.load(f)
 
-        doc_indexes = [vocab.get(token, vocab["UNK"]) for token in tokens]
+
+        doc_indexes = [self.vocab.get(token, self.vocab["UNK"]) for token in tokens]
         doc_indexes = doc_indexes[:min(data_config['enc_len'],len(doc_indexes))] # 可以少，最多不能超过enc_len
         # print(doc_indexes)
         # print(len(doc_indexes))
@@ -96,7 +106,7 @@ class Pred(object):
         # tgt_len = 16
 
         # vocab里面要加上S,E
-        predict_dec_input = self.dec_input_pred(self.model, enc_inputs, start_symbol=vocab["S"])# max_len
+        predict_dec_input = self.dec_input_pred(self.model, enc_inputs, start_symbol=self.vocab["SOS"])# max_len
         print(predict_dec_input)
         # predict, _, _, _ = self.model(enc_inputs, predict_dec_input)
 

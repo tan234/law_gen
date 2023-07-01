@@ -13,17 +13,38 @@ import jieba
 import json
 from config import *
 
-projected =torch.tensor([[[-0.1292,  1.3807, -0.0862, -4.0357, 15.7966, -1.2049],
-         [14.7269,  1.7715,  1.0128, -5.0443,  0.0181,  0.4881],
-         [14.9428,  1.3934,  0.9537,   -5.4548, -0.1483,  0.3296],
-         [14.9024,  1.7100,  1.2857,  -4.2892, -0.1035, -0.0721],
-         [14.6627,  1.4085,  1.4940,  -5.8918, -0.7217,  0.3800],
-         [14.9593,  1.7859,  1.0038,   -4.7113, -0.4765,  0.1360]]])
+enc_input=torch.zeros(1,5)
+enc_outputs = torch.zeros(1,5,3)
+dec_input = torch.zeros(1, 1).type_as(enc_input.data)
+print(dec_input.size(),dec_input)
+print(dec_input.detach())#不计算梯度,next_symbol是1,1
+next_symbol = 3
+a=torch.tensor([[next_symbol]])
+print(a,a.size())
 
-with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
-    vocab = json.load(f)
-print(vocab['S'])
-print(vocab['E'])
+dec_input = torch.cat([dec_input.detach(),torch.tensor([[next_symbol]],dtype=enc_input.dtype)],-1)#类似append
+print(dec_input)
+    #     dec_outputs, _, _ = model.decoder(dec_input, enc_input, enc_outputs)
+    #     projected = model.projection(dec_outputs)
+    #     prob = projected.squeeze(0).max(dim=-1, keepdim=False)[1]
+    #     next_word = prob.data[-1]
+    #     next_symbol = next_word
+    #     if next_symbol == tgt_vocab["."]:
+    #         terminal = True
+    #     print(next_word)
+    # return dec_input
+
+# projected =torch.tensor([[[-0.1292,  1.3807, -0.0862, -4.0357, 15.7966, -1.2049],
+#          [14.7269,  1.7715,  1.0128, -5.0443,  0.0181,  0.4881],
+#          [14.9428,  1.3934,  0.9537,   -5.4548, -0.1483,  0.3296],
+#          [14.9024,  1.7100,  1.2857,  -4.2892, -0.1035, -0.0721],
+#          [14.6627,  1.4085,  1.4940,  -5.8918, -0.7217,  0.3800],
+#          [14.9593,  1.7859,  1.0038,   -4.7113, -0.4765,  0.1360]]])
+#
+# with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
+#     vocab = json.load(f)
+# print(vocab['S'])
+# print(vocab['E'])
 
 # print([i[:-2]+i[-1]  for i in projected.data])
 

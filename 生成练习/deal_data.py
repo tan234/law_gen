@@ -6,7 +6,7 @@ import json
 
 import pandas as pd
 import os
-import jieba
+# import jieba
 import numpy as np
 import json
 from collections import Counter
@@ -30,10 +30,13 @@ class DealData:
 
     '''分词 去停用词'''
     def cut_word(self,corpus):
-        res=[]
-        for i in corpus:
-            # res.append([word for word,p in psg.cut(i) if word not in self.stopwords and len(word)>1 and p not in ['m']])
-            res.append([word for word in jieba.cut(i) ])
+        # str
+        res=[list(i)for i in corpus]
+        # word
+        # res=[]
+        # for i in corpus:
+        #     # res.append([word for word,p in psg.cut(i) if word not in self.stopwords and len(word)>1 and p not in ['m']])
+        #     res.append([word for word in jieba.cut(i) ])
 
         return res
 
@@ -54,7 +57,7 @@ class DealData:
         sortWordCount = sorted(wordCount.items(), key=lambda x: x[1], reverse=True)
 
         # 去除低频词
-        words = [item[0] for item in sortWordCount if item[1] >= 2]
+        words = [item[0] for item in sortWordCount if item[1] >= 3]
 
 
         # 给decoder加开头结尾标识
@@ -140,6 +143,12 @@ class DealData:
         # df['summary']=df['summary'].map(lambda x:'S'+str(x)+'E')
         #['id', 'text', 'url', 'summary']
         # print(df)
+
+        # 查看句子长度
+        # df['text_l']=df['text'].map(lambda x:len(list(x)))
+        # df['sum_l']=df['summary'].map(lambda x:len(list(x)))
+        # print(df['text_l'].describe())
+        # print(df['sum_l'].describe())
 
         # 2 分词(encoder与decoder用一套词典)
         sentences = self.cut_word(df['text'].to_list()+df['summary'].to_list())
