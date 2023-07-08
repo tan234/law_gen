@@ -1,3 +1,6 @@
 ## 在.gitignore写上：
 生成练习/model/transformer_model.pth
-
+生成练习/data/article.txt
+生成练习/checkpoints/model_state.pdparams
+生成练习/data/test
+生成练习/log/

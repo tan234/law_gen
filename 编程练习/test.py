@@ -23,20 +23,13 @@ import torch
 import random
 import math
 
-def a(s):
-    # 最长不重复子串
-    max_=0
-    res=[]
-
-    for i in range(len(s)):
-        if s[i]  in res:
-            idx=res.index(s[i])
-            res=res[idx+1:] if idx+1<len(res) else []
-        res.append(s[i])
-        max_=max(max_,len(res))
-    return max_
-
-print(a('adfaw2'))
+def a(x,p=.5):
+    # 实现dropout
+    n=int(p*len(x))
+    res=[0]*n+[1]*(len(x)-n)
+    random.shuffle(res)
+    return [i*j for i,j in zip(x,res)]
+print(a([1,3,0,9,34],p=.5))
 
 
 
