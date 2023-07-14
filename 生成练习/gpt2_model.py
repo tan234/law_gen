@@ -17,3 +17,8 @@ class Gpt2Model(paddle.nn.Layer):
         x = self.encoder(input_ids=x)
         x = self.linear(x)
         return x
+# import torch
+# # content_id：[seq_id,[c1_id],[c2_id],seq_id,[t1_id],[t2_id]]
+#
+# x=torch.tensor([[34,13,543,12,42,1,31],[34,13,3,11,42,1,31]])
+# print(GPTModel(200).forward(x))

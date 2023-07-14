@@ -1,9 +1,55 @@
+# -*- coding:utf-8 -*-
+
 import pandas as pd
 import torch
 import torch.nn as nn
 import numpy as np
 # criterion = nn.CrossEntropyLoss()  # 使用ignore_index参数，使得计算损失的时候不计算pad的损失
+import pickle
+import paddle
+from torch.utils.data import TensorDataset, DataLoader
 
+# data_path='data/gpt_train.pkl'
+# with open(data_path, "rb") as f:
+#     data_list = pickle.load(f)
+# # data: [[[contentid], [labid], len],, , , ]
+#
+#     data = data_list
+# data=data[:5]
+# a=torch.tensor([i[0] for i in data])
+# b=torch.tensor([i[1] for i in data])
+# # X, Y, l = torch.tensor([i[0] for i in data]), paddle.to_tensor([i[1] for i in data]), [i[2] for i in data]
+# c=torch.tensor([i[2] for i in data])
+#
+# print(a.size())
+# print(b.size())
+# print(a[0])
+# print(b[0])
+# print(c[0])
+
+
+# data_set = TensorDataset(a,b,c)
+# print(data_set)
+
+# def aa():
+#     data_loader = DataLoader(dataset=data_set,
+#                              batch_size=10,
+#                              shuffle=False)
+#     # print(i[0])
+#     # print(len(i[0]),len(i[1]),i[2])
+#
+#     return data_loader
+# for i in range(2):
+#
+#     print(aa())
+
+
+# print(data)
+# print(len(data), len(data[0]))
+# print(data[0])
+# print(data[:,0])
+# print(torch.tensor([data]))
+# paddle.to_tensor([data[:][0]])
 # LayerNorm
 
 from nltk.translate.bleu_score import sentence_bleu
@@ -12,18 +58,193 @@ from rouge  import Rouge
 import jieba
 import json
 from config import *
+import torch
+import paddle
+from paddle import fluid
+from paddlenlp.transformers import GPTTokenizer
+import pickle
+from gpt2_model import Gpt2Model
+from paddle.io import Dataset
+import paddle
+import pickle
+#
 
-enc_input=torch.zeros(1,5)
-enc_outputs = torch.zeros(1,5,3)
-dec_input = torch.zeros(1, 1).type_as(enc_input.data)
-print(dec_input.size(),dec_input)
-print(dec_input.detach())#不计算梯度,next_symbol是1,1
-next_symbol = 3
-a=torch.tensor([[next_symbol]])
-print(a,a.size())
 
-dec_input = torch.cat([dec_input.detach(),torch.tensor([[next_symbol]],dtype=enc_input.dtype)],-1)#类似append
-print(dec_input)
+a=30
+b=29
+if a%b!=0:
+    c=a//b+1
+else:c=a//b
+print(c)
+k
+# [{'rouge-1': {'r': 0.5, 'p': 0.5, 'f': 0.4999999950000001}, 'rouge-2': {'r': 0.0, 'p': 0.0, 'f': 0.0}, 'rouge-l': {'r': 0.5, 'p': 0.5, 'f': 0.4999999950000001}}]
+
+score = Rouge().get_scores(' '.join(str(i)for i in pred), ' '.join(str(i) for i in target))
+
+print(score)
+kk
+gpt2_tokenizer = GPTTokenizer.from_pretrained('gpt2-medium-en')# 使用的是gpt2-mediu-en分词器
+gpt2_tokenizer.add_special_tokens({"sep_token": "<sep>"})# 添加一个特殊字符来区分内容和摘要<>
+en=gpt2_tokenizer.encode('的骄傲了')
+a=en['input_ids']
+print(a,type(a))
+print(gpt2_tokenizer.decode(a))
+# b=list()
+print(gpt2_tokenizer.decode([1009,79,101, 2, 6378,228]))
+
+
+kk
+print(gpt2_tokenizer.convert_ids_to_string)
+
+print(gpt2_tokenizer.convert_ids_to_string([101, 7564, 6378]))
+print(gpt2_tokenizer.decode([101, 7564, 6378]))
+kk
+loss = nn.CrossEntropyLoss(
+                ignore_index=0)  # 使用ignore_index参数：可以忽略某一项y的损失，一般用于labelPAD的情况。，还有一个weihgt参数，可以给label加权重
+# print(out_list,label)
+seq_list=[17312, 222  , 165  , 45865, 37345]
+s=[17312, 222  , 165  , 45865, 35 ]
+print(' '.join(seq_list))
+# [17312, 222  , 165  , 45865, 37345, 243  , 171  , 120  , 248  , 22887,
+#         232  , 34932, 235  , 161  , 240  , 234  , 46479, 251  , 49694, 50257])
+# <class 'list'> [20227, 44330, 36950, 16144, 28977, 45470, 14591, 46962, 22013, 41839, 17419, 34444, 20793, 26629, 29599, 2621, 44706, 39504, 32723, 36276]
+
+rouge_score = Rouge().get_scores(''.join(seq_list), ''.join(s))
+print(rouge_score)
+# print()
+# print(loss(torch.tensor(out_list), torch.tensor(label)))
+
+# # print('-----------')
+# # print(a[0],a[0].size())
+# # print('-----------')
+# # print(a[:,:,0])
+# for i in range(3):
+#     for j in range(2):
+#         a[i][j][:]=i+j
+#         print(a[i][j][:])
+#         print('---------------------')
+# print(a)
+# a[:,:,:]
+# GptData()
+# filtered_logits=torch.tensor([0.9000, 0.9800, 0.6500,   -float('Inf'),  -float('Inf'), 0.4800,   -float('Inf')])
+# cumulative_probs = sorted_logits.softmax(dim=-1).cumsum(dim=-1)  # softmax操作后，累计计算概率分布
+# next_token = torch.multinomial(filtered_logits.softmax(dim=-1), num_samples=1)
+
+# next_token = paddle.multinomial(fluid.layers.softmax(filtered_logits, axis=-1), num_samples=1)
+
+# print(filtered_logits)
+# print(next_token)
+# tran_data = MyDataset('data/gpt_train.pkl')
+
+
+# for i, data in enumerate(tran_data):
+#     print(i)
+#     print(data)
+#     kk
+
+
+
+
+# data=pd.DataFrame([{'content':'会发你发附加赛佛开票','title':'和大'},{'content':'都还是金广发女法律方式看见你','title':'大家发疯'}])
+# print(data)
+# content_id=[gpt2_tokenizer.sep_token_id]
+# print()
+# c = gpt2_tokenizer(data['content'].to_list(),return_token_type_ids=False)["input_ids"]
+# content_id.extend(c)
+# print(content_id)
+#
+# length = len(content_id)
+# content_id.append(gpt2_tokenizer.sep_token_id)
+# t = gpt2_tokenizer(data['title'].to_list(),return_token_type_ids=False)["input_ids"]
+# content_id.extend(t[:100])
+# print(content_id)
+# label = t[:100]
+# label.append(gpt2_tokenizer.sep_token_id)
+# print(label)
+# all_data.append([content_id, label, length])
+
+from paddle.io import Dataset
+import paddle
+import pickle
+
+
+
+# input_id = [gpt2_tokenizer.sep_token_id]#'sep'对应的编码input_id=[50257]
+# input_id.extend(gpt2_tokenizer(inputs)["input_ids"][:400])
+# print(input_id)
+# input_id.append(gpt2_tokenizer.sep_token_id)
+# print(input_id)
+#
+# input_id = paddle.to_tensor([input_id])
+# print(input_id)
+
+# print(gpt2_tokenizer)
+# model_inputs = gpt2_tokenizer(inputs,
+#                                  max_length=100,
+#                                  padding=False,
+#                                  truncation=True,
+#                                  return_attention_mask=True)
+# print(model_inputs)
+# print(len(model_inputs['input_ids']))
+# print(gpt2_tokenizer['sep'])
+
+# print(gpt2_tokenizer.sep_token_id)
+# top_k=5
+# logits=torch.tensor([0.9,0.98,0.65,0.01,0.32,0.48,0.12])#
+# next_token_logits = logits[0, -1, :]
+#
+# print('logits:7',logits)
+# print(next_token_logits)
+#
+# indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
+# # print(indices_to_remove)
+#
+# logits[indices_to_remove] = -float('Inf')  # 对于topk之外的其他元素的logits值设为负无穷,tensor([0.9000, 0.9800,   -inf,   -inf, 0.4800,   -inf])
+# print('top_k=5:',logits)
+#
+# print('----')
+#
+# sorted_logits, sorted_indices = torch.sort(logits, descending=True)  # 对logits进行递减排序
+# print(sorted_logits)
+# print(sorted_indices)
+# print('---------------')
+#
+# cumulative_probs = sorted_logits.softmax(dim=-1).cumsum(dim=-1)  # softmax操作后，累计计算概率分布
+# # sorted_logits.softmax(dim=-1):tensor([0.2656, 0.2452, 0.1909, 0.1611, 0.1373, 0.0000, 0.0000])
+# # cumulative_probs:tensor([0.2656, 0.5107, 0.7017, 0.8627, 1.0000, 1.0000, 1.0000])
+#
+# print('cum:',cumulative_probs)
+# print('---------------')
+# # Remove tokens with cumulative probability above the threshold
+# sorted_indices_to_remove = cumulative_probs > 0.8#过滤
+# # tensor([False, False, False,  True,  True,  True,  True])
+#
+# # print(sorted_indices_to_remove)
+#
+# # Shift the indices to the right to keep also the first token above the threshold
+# sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+# sorted_indices_to_remove[..., 0] = 0
+#
+# # print(sorted_indices_to_remove)
+# indices_to_remove = sorted_indices[sorted_indices_to_remove]
+# # print(indices_to_remove)
+# logits[indices_to_remove] = -float('Inf')
+# print(logits)
+
+# logits[indices_to_remove] = filter_value  # 对于topk之外的其他元素的logits值设为负无穷
+# print(logits)
+
+# enc_input=torch.zeros(1,5)
+# enc_outputs = torch.zeros(1,5,3)
+# dec_input = torch.zeros(1, 1).type_as(enc_input.data)
+# print(dec_input.size(),dec_input)
+# print(dec_input.detach())#不计算梯度,next_symbol是1,1
+# next_symbol = 3
+# a=torch.tensor([[next_symbol]])
+# print(a,a.size())
+#
+# dec_input = torch.cat([dec_input.detach(),torch.tensor([[next_symbol]],dtype=enc_input.dtype)],-1)#类似append
+# print(dec_input)
     #     dec_outputs, _, _ = model.decoder(dec_input, enc_input, enc_outputs)
     #     projected = model.projection(dec_outputs)
     #     prob = projected.squeeze(0).max(dim=-1, keepdim=False)[1]

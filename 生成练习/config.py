@@ -18,13 +18,13 @@ train_config={
      'epochs':2,
 }
 
-transformer_config={
+Transformer_config={
     'emb_size':256,#positional encoding 维度,这两个要维度相加，应该是一样的维度
     'd_ff' : 2048 ,# FeedForward dimension
     'd_k':64,# 变成K，Q，V矩阵的维度,K和Q一定是一样的，因为要K乘Q的转置,V不一定,这里我们认为是一样的
     'd_v': 64,  # dimension of K(=Q), V
     'n_heads':  4,# multi-head attention有几个头
-    'transformer_model_path':'model/transformer_model.pth',
+    'model_save_dir':'model/transformer_model.pth',
     'enc_layers':1,
     'dec_layers':1,
     'tgt_emb':256,
@@ -66,7 +66,8 @@ GPT2_config={
     # 推断阶段用
     'max_len':  50,
     'repetition_penalty':  1.0,    # 惩罚比例 ，如果输出重复的单词太多，适当调高这个比例
-    'temperature':  1
+    'temperature':  1,
+    'top_k':5
 
 }
 

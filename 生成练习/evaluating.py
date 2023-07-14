@@ -37,96 +37,255 @@ from paddlenlp.transformers import GPTModel, GPTTokenizer
 from rouge import Rouge
 from paddlenlp.datasets import load_dataset
 from tqdm import tqdm
+import torch
 
+from rouge  import Rouge
+import jieba
 
 # ---------gpt2_evaluate-----------
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
-    assert logits.dim() == 1  # batch size 1 for now - could be updated for more but the code would be less clear
-    top_k = min(top_k, logits.shape[-1])  # Safety check
+    '''
+    功能：对预测的结果进行过滤；模型预测通过top-k采样，每一步生成一个词不再是概率最大的一个（贪心搜索），从概率最大的k个中随机采样一个，这样子生成的效果不会太死板。
+    top-k采样，模型会从概率前 k 大的单词中抽样选取下一个单词
+    Top-p采样，设定概率阈值，取满足阈值条件的样本进行采样
+    目的：先选择概率top-k个,然后对于这top-k选择累计贡献达到的top-p的前几个；其他位置的值为-inf
+    输入:logits: tensor([0.9000, 0.9800, 0.6500, 0.0100, 0.3200, 0.4800, 0.1200]),topk=5,top_p=0.8
+    输出：tensor([0.9000, 0.9800, 0.6500,   -inf,   -inf, 0.4800,   -inf])
+
+    '''
+
+    assert logits.dim() == 1  # []一维tensor
+    top_k = min(top_k, logits.shape[-1])  # Safety check,logits长度，是否小于topk
+    # logits: tensor([0.9000, 0.9800, 0.6500, 0.0100, 0.3200, 0.4800, 0.1200]),topk=5
+    # print(type(logits),logits)
     if top_k > 0:
-        # Remove all tokens with a probability less than the last token of the top-k
-        # torch.topk()返回最后一维最大的top_k个元素，返回值为二维(values,indices)
-        # ...表示其他维度由计算机自行推断
+        # torch.topk()返回最后一维最大的top_k个元素，返回值为二维(values,indices) # ...表示其他维度由计算机自行推断
+        # print(paddle.topk(logits, top_k))
         indices_to_remove = logits < paddle.topk(logits, top_k)[0][..., -1, None]
+
+
         logits[indices_to_remove] = filter_value  # 对于topk之外的其他元素的logits值设为负无穷
+        # tensor([0.9000, 0.9800, 0.6500, -inf, 0.3200, 0.4800, -inf])
 
     if top_p > 0.0:
-        sorted_logits, sorted_indices = paddle.sort(logits, descending=True)  # 对logits进行递减排序
-        cumulative_probs = paddle.cumsum(fluid.layers.softmax(sorted_logits, dim=-1), dim=-1)
+        sorted_logits, sorted_indices = torch.sort(logits, descending=True)  # 对logits进行递减排序
+        # sorted_logits:tensor([0.9800, 0.9000, 0.6500, 0.4800, 0.3200, -inf, -inf])
+        # sorted_indices：tensor([1, 0, 2, 5, 4, 3, 6])
 
-        # Remove tokens with cumulative probability above the threshold
+        cumulative_probs = sorted_logits.softmax(dim=-1).cumsum(dim=-1)  # softmax操作后，累计计算概率分布
+        # sorted_logits.softmax(dim=-1):tensor([0.2656, 0.2452, 0.1909, 0.1611, 0.1373, 0.0000, 0.0000])
+        # cumulative_probs:tensor([0.2656, 0.5107, 0.7017, 0.8627, 1.0000, 1.0000, 1.0000])# 累计计算概率分布
+
         sorted_indices_to_remove = cumulative_probs > top_p
+        # sorted_indices_to_remove:[F,F,,,]
+
         # Shift the indices to the right to keep also the first token above the threshold
         sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
         sorted_indices_to_remove[..., 0] = 0
 
         indices_to_remove = sorted_indices[sorted_indices_to_remove]
         logits[indices_to_remove] = filter_value
+
     return logits
 
-def gpt2_evaluate(tokenizer,news,target,config,model):
+# def gpt2_per(tokenizer,config,model,news,target):
+#
+#     # input_id = [tokenizer.sep_token_id]  # 'sep'对应的编码input_id=[50257]
+#     # input_id.extend(tokenizer(news)["input_ids"][:400])
+#     # input_id.append(tokenizer.sep_token_id)  # [sep ,line ,sep]
+#     # input_id = paddle.to_tensor([input_id])  # tensor:1*[seq(line)+2]
+#     #
+#     # response = []
+#
+#     for _ in range(config['max_len']):
+#         logits = model(input_id)  # 预测结果shape=[1, 29, 50258]
+#
+#         next_token_logits = logits[0, -1, :]  # shape=[ 50258]，取最后一个step的预测结果
+#
+#         # 对于已生成的结果generated中的每个token添加一个重复惩罚项，降低其生成概率
+#         # print(next_token_logits.shape)
+#
+#         for id in set(response):
+#             next_token_logits[id] /= config['repetition_penalty']
+#         next_token_logits = next_token_logits / config['temperature']
+#         # 对于[UNK]的概率设为无穷小，也就是说模型的预测结果不可能是[UNK]这个token
+#         next_token_logits[tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
+#
+#         filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=config['top_k'], top_p=0)
+#
+#         # torch.multinomial表示从候选集合中无放回地进行抽取num_samples个元素，权重越高，抽到的几率越高，返回元素的下标
+#         next_token = torch.multinomial(filtered_logits.softmax(dim=-1), num_samples=1)
+#
+#         if next_token == tokenizer.sep_token_id:  # 遇到[SEP]则表明response生成结束
+#             break
+#         response.append(next_token.item())
+#
+#         input_id = paddle.cat((input_id, next_token.unsqueeze(0)), axis=1)  # 将预测结果拼接到输入序列
+#         # his_text = tokenizer.convert_ids_to_tokens(curr_input_tensor.tolist())
+#         # print("his_text:{}".format(his_text))
+#     # history.append(response)
+#     text = tokenizer.convert_ids_to_string(response)
+#
+#     rouge_score = Rouge().get_scores(text, target)
+#     score1 = rouge_score[0]["rouge-1"]["p"]
+#     score2 = rouge_score[0]["rouge-2"]["p"]
+#     score3 = rouge_score[0]["rouge-l"]["p"]
+#     return score1, score2, score3
 
-    input_id = [tokenizer.sep_token_id]
-    input_id.extend(tokenizer(news)["input_ids"][:400])
-    input_id.append(tokenizer.sep_token_id)
-    input_id = paddle.to_tensor([input_id])
-    #logits = net(paddle.to_tensor([input_id]))
-    response = []
-    for _ in range(config['max_len']):
-        logits = model(input_id)
+# def gpt2_evaluate(tokenizer,dev_data_loader,news,target,config,model):
+#     '''
+#
+#     '''
+#
+#     # for i, data in enumerate(dev_data_loader):
+#     #     content, label, lenght = data
+#     #     out = model(content)# shape=[batch, 29, 50258]
+#     #     out = out[:, -1:, :]# shape=[ 50258]，取最后一个step的预测结果
+#
+#
+#         # loss = paddle.nn.functional.cross_entropy(out, label)
+#         # print(f"epoch:{epoch} step:{i} loss:{loss.item()}")
+#     #new:?
+#     input_id = [tokenizer.sep_token_id]#'sep'对应的编码input_id=[50257]
+#     input_id.extend(tokenizer(news)["input_ids"][:400])
+#     input_id.append(tokenizer.sep_token_id)# [sep ,line ,sep]
+#     input_id = paddle.to_tensor([input_id])#tensor:1*[seq(line)+2]
+#
+#
+#     response = []
+#
+#     for _ in range(config['max_len']):
+#         logits = model(input_id)#预测结果shape=[1, 29, 50258]
+#
+#         next_token_logits = logits[0, -1, :]#shape=[ 50258]，取最后一个step的预测结果
+#
+#         # 对于已生成的结果generated中的每个token添加一个重复惩罚项，降低其生成概率
+#         #print(next_token_logits.shape)
+#
+#         for id in set(response):
+#             next_token_logits[id] /= config['repetition_penalty']
+#         next_token_logits = next_token_logits / config['temperature']
+#         # 对于[UNK]的概率设为无穷小，也就是说模型的预测结果不可能是[UNK]这个token
+#         next_token_logits[tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
+#         filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=config['top_k'], top_p=0)
+#
+#         # torch.multinomial表示从候选集合中无放回地进行抽取num_samples个元素，权重越高，抽到的几率越高，返回元素的下标
+#         next_token = torch.multinomial(filtered_logits.softmax(dim=-1), num_samples=1)
+#
+#         if next_token == tokenizer.sep_token_id:  # 遇到[SEP]则表明response生成结束
+#             break
+#         response.append(next_token.item())
+#
+#         input_id = paddle.cat((input_id, next_token.unsqueeze(0)), axis=1)# 将预测结果拼接到输入序列
+#         # his_text = tokenizer.convert_ids_to_tokens(curr_input_tensor.tolist())
+#         # print("his_text:{}".format(his_text))
+#     #history.append(response)
+#     text = tokenizer.convert_ids_to_string(response)
+#
+#     rouge_score = Rouge().get_scores(text,target)
+#     score1 = rouge_score[0]["rouge-1"]["p"]
+#     score2 = rouge_score[0]["rouge-2"]["p"]
+#     score3 = rouge_score[0]["rouge-l"]["p"]
+#     return score1,score2,score3
 
+def gpt2_out_choice(out,tokenizer):
+    '''
+    out:shape = [seq, vocab]
+    res:shape = [seq]
+    目的：给一条样本的模型结果返回一个预测值
+    '''
+    # print(out)
+    # print(out.shape)
+    res=[]
+    # print(out.shape)
 
-        next_token_logits = logits[0, -1, :]
-        # 对于已生成的结果generated中的每个token添加一个重复惩罚项，降低其生成概率
-        #print(next_token_logits.shape)
-
-        for id in set(response):
-            next_token_logits[id] /= config['repetition_penalty']
-        next_token_logits = next_token_logits / config['temperature']
-        # 对于[UNK]的概率设为无穷小，也就是说模型的预测结果不可能是[UNK]这个token
-        #next_token_logits[tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
-        filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=5, top_p=0)
-        # torch.multinomial表示从候选集合中无放回地进行抽取num_samples个元素，权重越高，抽到的几率越高，返回元素的下标
-        next_token = paddle.multinomial(fluid.layers.softmax(filtered_logits, axis=-1), num_samples=1)
+    for seq in range(out.shape[0]):  # seq
+        # print(out[seq][:])
+        s=top_k_top_p_filtering(out[seq][:], top_k=5, top_p=0.0, filter_value=-float('Inf'))
+        # print(s)
+        next_token = paddle.multinomial(paddle.nn.functional.softmax(s, axis=-1), num_samples=1)
+        # print(next_token)
+        # next_token = torch.multinomial(s.softmax(dim=-1), num_samples=1)#选择一个id作为预测结果
         if next_token == tokenizer.sep_token_id:  # 遇到[SEP]则表明response生成结束
             break
-        response.append(next_token.item())
-        input_id = paddle.concat((input_id, next_token.unsqueeze(0)), axis=1)
-        # his_text = tokenizer.convert_ids_to_tokens(curr_input_tensor.tolist())
-        # print("his_text:{}".format(his_text))
-    #history.append(response)
-    text = tokenizer.convert_ids_to_string(response)
+        res.append(next_token.item())
+    # print(res)
 
-    rouge_score = Rouge().get_scores(text,target)
-    score1 = rouge_score[0]["rouge-1"]["p"]
-    score2 = rouge_score[0]["rouge-2"]["p"]
-    score3 = rouge_score[0]["rouge-l"]["p"]
-    return score1,score2,score3
+    return res
+def gpt2_evaluate(model,tokenizer,dev_data_loader,config,dev_len):
 
-def gpt2():
-    tokenizer = GPTTokenizer.from_pretrained("gpt2-medium-en")
-    tokenizer.add_special_tokens({"sep_token": "<sep>"})
-    rouge = Rouge()
-    max_len = 50
-    repetition_penalty = 1.0
-    temperature = 1
+    r1, r2, rl,count = 0, 0, 0,0
+    for i,data in enumerate(dev_data_loader):#batch
+        content, label, lenght = data
+        # print(content)
+        out = model(content.squeeze(axis=1))#[10, 171, 50258]
+        # print(out)
+        # out = out[:, lenght:, :]# 预测结果vocab
+        # out.shape()
 
-    net = MyModel(tokenizer.vocab_size + 1)
-    net_dic = paddle.load("./model/model_2_262500.pkl")
-    net.set_state_dict(net_dic)
+        # out_list = []
+        # for i in range(len(lenght)):
+        #     out_per = out[i, lenght[i]:, :]
+        #     # out_per=gpt2_out_choice(out_per,tokenizer)
+        #     # print('out_per:',out_per)
+        #     out_list.append(out_per)
+        #     lenght[i] = lenght[i][:len(out_per)]
 
-    train_set, dev_set, test_set = load_dataset("cnn_dailymail", splits=["train", "dev", "test"])
+        # response=[]
+        # 选top5
+        '''rL值是对一条进行计算，这里是先得到每条样本的预测值（所有sep），然后去计算'''
+        # print(out.shape)
+        # print(lenght)
+        for batch in range(out.shape[0]):#一个样本0-10
+            seq_list=[]#存储每个sep预测值
+            # for sep in range(len(lenght)):
+            for seq in range(out.shape[1]-lenght[batch]):
+                # print(seq+lenght[seq])
 
-    s1_all, s2_all, s3_all = 0, 0, 0
-    for data in tqdm(test_set):
-        content = data["article"].lower()
-        title = data["highlights"].lower()
-        s1, s2, s3 = eval(content, title)
-        s1_all += s1
-        s2_all += s2
-        s3_all += s3
-    print(f"r1:{s1_all / len(test_set)},r2:{s2_all / len(test_set)},r3:{s3_all / len(test_set)}")
+                per=out[batch][seq+lenght[batch]][:]#[50258]
+                per= top_k_top_p_filtering(per, top_k=5, top_p=0.0, filter_value=-float('Inf'))
+                # printper)
+
+                next_token = paddle.multinomial(paddle.nn.functional.softmax(per, axis=-1), num_samples=1)
+
+                # next_token = torch.multinomial(per.softmax(dim=-1), num_samples=1)
+                if next_token == tokenizer.sep_token_id:  # 遇到[SEP]则表明response生成结束
+                    break
+                seq_list.append(next_token.item())
+
+            # seq_list:[31779, 30059, 17742, 43850, 18479, 27823, 11209, 42608, 7963, 20863, 46090, 25769, 907, 43549, 28351, 23061, 20470, 14265, 42053, 14383]
+            # text = tokenizer.convert_ids_to_string(seq_list)
+            label=label.squeeze(1)
+            # print(type(label),label[batch])
+            # print(type(seq_list),seq_list)
+            # print(tokenizer.convert_ids_to_string(label))
+            # print(tokenizer.convert_ids_to_string(seq_list))
+            target=label[batch].tolist()
+
+            rouge_score = Rouge().get_scores(' '.join(str(i) for i in seq_list), ' '.join(str(i) for i in target))
+
+            # rouge_score = Rouge().get_scores(seq_list, )
+            score1 = rouge_score[0]["rouge-1"]["p"]
+            score2 = rouge_score[0]["rouge-2"]["p"]
+            scorel = rouge_score[0]["rouge-l"]["p"]
+            # print(score1,score2,scorel)
+            # kk
+            # s1, s2, s3 = gpt2_per(content, label)
+            r1 += score1
+            r2 += score2
+            rl += scorel
+            count += 1
+
+    # print('he')
+
+
+        c=dev_len//config['batch_size']+1 if dev_len%config['batch_size']!=0 else dev_len//config['batch_size']
+
+        if i==c-1:
+            break
+    print(f"r1:{r1 / count},r2:{r2 / count},r3:{rl / count}")
+    return r1,r2,rl
 
 
 # ---------pegasus_evaluate-----------
@@ -204,3 +363,49 @@ def compute_metrics(preds, targets):
     print('rouge-L:', round(rougel * 100, 2))
     print('BLEU-4:', round(bleu4 * 100, 2))
     return rouge1, rouge2, rougel, bleu4
+
+
+# ---------transformer_evaluate-----------
+def rouge_value(y_true,y_pred):
+    rouge = Rouge()
+    rouge_scores = rouge.get_scores(y_pred,y_true)
+
+    # print('rouge_scores:', rouge_scores)
+    rouge_f=[rouge_scores[0][k]['f'] for k in rouge_scores[0]]
+    score=0.2*rouge_f[0]+0.3*rouge_f[1]+0.5*rouge_f[2]
+    # rl_p = rouge_scores[0]['rouge-l']['p']
+    # print("score", score)
+    return score
+def dev_evaluate( data_iter,net):
+    train_rouge, n = 0.0, 0
+    with torch.no_grad():
+        for X, y in data_iter:
+
+            # if isinstance(net, torch.nn.Module):
+            net.eval()  # 评估模式, 会关闭dropout
+
+            n += y.shape[0]
+            y_hat,_,_,_, = net.forward(X, y)  # [batch_size, tgt_len, tgt_vocab_size]
+
+            # 模型评估指标计算
+            y = ' '.join([str(i) for i in y.view(-1).tolist()])# 真实值平铺 batch_size*tgt_len
+            y_hat = y_hat.view(-1, y_hat.size()[-1])  # [batch_size*tgt_len, tgt_vocab_size]
+            y_hat = ' '.join([str(i) for i in y_hat.argmax(dim=1).tolist()])
+            # print(y_hat)
+            train_rouge += rouge_value(y, y_hat)
+
+            net.train()  # 改回训练模式
+
+    return train_rouge / n
+
+def trans_eval(y_pred,y_true):
+    rouge = Rouge()
+
+    rouge_scores = rouge.get_scores(" ".join(jieba.cut(y_pred)),
+                                    " ".join(jieba.cut(y_true)))  # "Installing collected packages", "Installing "
+    # print('rouge_scores:', rouge_scores)
+    rouge_f = [rouge_scores[0][k]['f'] for k in rouge_scores[0]]
+    score = 0.2 * rouge_f[0] + 0.3 * rouge_f[1] + 0.5 * rouge_f[2]
+    # rl_p = rouge_scores[0]['rouge-l']['p']
+    # print("score", score)
+    return score

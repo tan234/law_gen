@@ -33,10 +33,11 @@ class TransformerPred(object):
 
         with open(data_config['vocab_path'], "r", encoding="utf-8") as f:
             self.vocab = json.load(f)
+        self.config=Transformer_config
     '''读取训练好的模型'''
     def load_model(self):
         cur_dir = os.path.dirname(__file__)
-        model_path = os.path.join(cur_dir, transformer_config['transformer_model_path'])
+        model_path = os.path.join(cur_dir, self.config['model_save_dir'])
         model = Transformer()
         m_state_dict = torch.load(model_path)
         model = model.to(self.device)
@@ -130,57 +131,62 @@ class TransformerPred(object):
         return res
 
 
+
+'''GPT2 推理'''
 class Gpt2Pred(object):
     '''
     模型预测通过top-k采样，每一步生成一个词不再是概率最大的一个（贪心搜索），从概率最大的k个中随机采样一个，这样子生成的效果不会太死板。
     '''
     def __init__(self):
 
-        tokenizer = GPTTokenizer.from_pretrained("gpt2-medium-en")
-        tokenizer.add_special_tokens({"sep_token": "<sep>"})
+        # 加载模型
+        self.tokenizer = GPTTokenizer.from_pretrained("gpt2-medium-en")
+        self.tokenizer.add_special_tokens({"sep_token": "<sep>"})
 
 
-        config=GPT2_config
-        model = Gpt2Model(tokenizer.vocab_size + 1)
-        model_dic = paddle.load(config['model_save_path'])
-        model.set_state_dict(model_dic)
+        self.config=GPT2_config
+        self.model = Gpt2Model(self.tokenizer.vocab_size + 1)
+        model_dic = paddle.load(self.config['model_save_path'])
+        self.model.set_state_dict(model_dic)
 
+        # self.infer(tokenizer,model,config,content)
 
-    def infer(self,tokenizer,model,config):
+    def infer(self,content):
+
         while True:
-            news = input("输入新闻：")
-            input_id = [tokenizer.sep_token_id]
+            # 输入内容编码
+            input_id = [self.tokenizer.sep_token_id]
 
-            input_id.extend(tokenizer(news)["input_ids"])
-            input_id.append(tokenizer.sep_token_id)
+            input_id.extend(self.tokenizer(content)["input_ids"])
+            input_id.append(self.tokenizer.sep_token_id)
             input_id = paddle.to_tensor([input_id])
+
             # logits = net(paddle.to_tensor([input_id]))
             response = []
-            for _ in range(config['max_len']):
-                logits = model(input_id)
+            for _ in range(self.config['max_len']):
+                logits = self.model(input_id)
 
-                next_token_logits = logits[0, -1, :]
-                # 对于已生成的结果generated中的每个token添加一个重复惩罚项，降低其生成概率
-                # print(next_token_logits.shape)
+                next_token_logits = logits[0, -1, :]# 取最后一个预测结果
                 # 减小已经生成单词的概率
                 for id in set(response):
-                    next_token_logits[id] /= config['repetition_penalty']
+                    next_token_logits[id] /= self.config['repetition_penalty']#给生成摘要中已经生成的词，降低这个词在本次预测结果中的概率
 
-                next_token_logits = next_token_logits / config['temperature']
-                # 对于[UNK]的概率设为无穷小，也就是说模型的预测结果不可能是[UNK]这个token
-                # next_token_logits[tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
+                next_token_logits = next_token_logits / self.config['temperature']#所有的概率都降低？
+                next_token_logits[self.tokenizer.convert_tokens_to_ids('[UNK]')] = -float('Inf')
+
                 filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=5, top_p=0)
                 # torch.multinomial表示从候选集合中无放回地进行抽取num_samples个元素，权重越高，抽到的几率越高，返回元素的下标
-                next_token = paddle.multinomial(fluid.layers.softmax(filtered_logits, axis=-1), num_samples=1)
-                if next_token == tokenizer.sep_token_id:  # 遇到[SEP]则表明response生成结束
+                next_token = torch.multinomial(filtered_logits.softmax(dim=-1), num_samples=1)
+
+                if next_token == self.tokenizer.sep_token_id:  # 遇到[SEP]则表明response生成结束
                     break
                 response.append(next_token.item())
                 input_id = paddle.concat((input_id, next_token.unsqueeze(0)), axis=1)
                 # his_text = tokenizer.convert_ids_to_tokens(curr_input_tensor.tolist())
                 # print("his_text:{}".format(his_text))
             # history.append(response)
-            tokenizer.add_special_tokens(response)
-            text = tokenizer.convert_ids_to_string(response)
+            self.tokenizer.add_special_tokens(response)# tokenizer.add_special_tokens可以让tokenizer不给’[C1]’,’[C2]’,’[C3]’,’[C4]'进行分词
+            text = self.tokenizer.convert_ids_to_string(response)
             print("模型预测摘要:" + text)
 
 
